@@ -26,14 +26,17 @@ The name "Vaani" (वाणी) comes from Sanskrit, meaning *speech* or *voice*
 
 ```bash
 pip install vaani
-vaani setup    # Enter your API keys (stored in macOS Keychain)
-vaani start    # Launch the menu bar app
+python -m spacy download en_core_web_sm
+vaani start
 ```
 
-Then:
+On first launch, Vaani walks you through entering your API keys and granting macOS permissions. Then:
+
 1. **Hold** `Alt` (or your configured hotkey) and speak
 2. **Release** — Vaani transcribes and enhances your speech
 3. **Polished text** appears at your cursor in ~2–4 seconds
+
+> **API keys needed:** [OpenAI](https://platform.openai.com/api-keys) (transcription) · [Anthropic](https://console.anthropic.com/settings/keys) (enhancement). Keys are stored in macOS Keychain — never written to disk in plaintext.
 
 ---
 

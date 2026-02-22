@@ -487,7 +487,7 @@
 
   <div class="install-block" onclick="copyInstall()">
     <span class="prompt">$</span>
-    <span class="cmd">pip install vaani &amp;&amp; vaani setup</span>
+    <span class="cmd">pip install vaani &amp;&amp; vaani start</span>
     <button class="copy-btn" id="copy-btn">copy</button>
   </div>
   <p class="install-note">
@@ -749,7 +749,7 @@
       </div>
       <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">For developers. Fits in your dotfiles, installs in one command, updates with pip.</p>
       <div style="display:flex;flex-direction:column;gap:0.5rem;">
-        <div class="install-block" style="display:block;cursor:default;" onclick="copyPip()">
+        <div class="install-block" style="display:block;cursor:default;">
           <span style="color:var(--accent);font-family:var(--mono);">$</span>
           <span style="font-family:var(--mono);font-size:0.82rem;"> pip install vaani</span>
         </div>
@@ -759,10 +759,10 @@
         </div>
         <div class="install-block" style="display:block;cursor:default;">
           <span style="color:var(--accent);font-family:var(--mono);">$</span>
-          <span style="font-family:var(--mono);font-size:0.82rem;"> vaani setup &amp;&amp; vaani start</span>
+          <span style="font-family:var(--mono);font-size:0.82rem;"> vaani start</span>
         </div>
       </div>
-      <p style="margin-top:1rem;font-size:0.75rem;color:var(--muted);">Requires Python 3.10+ and API keys for <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--accent);">OpenAI</a> and <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent);">Anthropic</a>.</p>
+      <p style="margin-top:1rem;font-size:0.75rem;color:var(--muted);">Onboarding runs automatically on first launch — enter your API keys and grant permissions. Requires <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--accent);">OpenAI</a> and <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent);">Anthropic</a> API keys.</p>
     </div>
 
     <!-- app download -->
@@ -813,7 +813,7 @@
 
 <script>
   function copyInstall() {
-    const text = 'pip install vaani && vaani setup';
+    const text = 'pip install vaani && vaani start';
     navigator.clipboard.writeText(text).then(() => {
       const btn = document.getElementById('copy-btn');
       btn.textContent = 'copied!';
