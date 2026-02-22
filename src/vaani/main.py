@@ -282,24 +282,25 @@ class VaaniApp:
 
     def run(self) -> None:
         """Start the app: hotkey listener + menu bar (main thread)."""
+        import rumps as _rumps
         from vaani.hotkey import HotkeyListener
         from vaani.menubar import VaaniMenuBar
 
         threading.Thread(target=self._prewarm, daemon=True).start()
 
-        # Start hotkey listener
-        self._hotkey_listener = HotkeyListener(
-            hotkey=self.config.hotkey,
-            on_press=self.start_recording,
-            on_release=self.stop_recording,
-            on_cancel=self.cancel_recording,
-        )
-        self._hotkey_listener.start()
-
-        # Menu bar must run on main thread (macOS requirement)
         self.menubar = VaaniMenuBar(
             on_toggle_recording=self.toggle_recording,
         )
+
+        @_rumps.events.before_start
+        def _start_hotkey():
+            self._hotkey_listener = HotkeyListener(
+                hotkey=self.config.hotkey,
+                on_press=self.start_recording,
+                on_release=self.stop_recording,
+                on_cancel=self.cancel_recording,
+            )
+            self._hotkey_listener.start()
 
         self.menubar.run()  # Blocks until quit
 
