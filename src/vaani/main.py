@@ -57,13 +57,17 @@ class VaaniApp:
         self.state = StateMachine()
         self.menubar = None
         self._recorder = None
+        self._recorder_device = None
         self._history = None
         self._hotkey_listener = None
 
     def _get_recorder(self):
         from vaani.audio import AudioRecorder
         if self._recorder is None:
-            self._recorder = AudioRecorder(sample_rate=self.config.sample_rate)
+            self._recorder = AudioRecorder(
+                sample_rate=self.config.sample_rate,
+                device=self._recorder_device
+            )
         return self._recorder
 
     def _get_history(self):
@@ -84,6 +88,7 @@ class VaaniApp:
             self.menubar.update_state(AppState.RECORDING)
             if self.config.sounds_enabled:
                 self.menubar.play_sound("Tink")
+
 
         recorder = self._get_recorder()
         recorder.start()
@@ -115,6 +120,7 @@ class VaaniApp:
 
         if self.menubar:
             self.menubar.update_state(AppState.PROCESSING)
+
 
         # Process in background thread
         threading.Thread(
@@ -216,6 +222,19 @@ class VaaniApp:
         self.config.active_mode = mode
         save_config(self.config)
 
+    def _on_microphone_change(self, device_index: Optional[int]) -> None:
+        """Handle microphone selection change."""
+        self._recorder_device = device_index
+        # Reset recorder to use new device on next recording
+        self._recorder = None
+        if device_index is not None:
+            import sounddevice as sd
+            device_info = sd.query_devices(device_index)
+            device_name = device_info['name'] if isinstance(device_info, dict) else "unknown"
+            logger.info("Microphone changed to: %s", device_name)
+        else:
+            logger.info("Microphone changed to: default")
+
     def _prewarm(self) -> None:
         """Pre-initialize recorder and VAD model in background to avoid first-use lag."""
         try:
@@ -248,7 +267,9 @@ class VaaniApp:
             on_mode_change=self._on_mode_change,
             active_mode=self.config.active_mode,
             get_level=lambda: self._get_recorder().current_level,
+            on_microphone_change=self._on_microphone_change,
         )
+
         self.menubar.run()  # Blocks until quit
 
 
@@ -311,22 +332,53 @@ def setup():
 
 
 @cli.command()
-def start():
-    """Launch the Vaani menu bar app."""
-    config = load_config()
-    setup_logging(config)
+@click.option("--foreground", is_flag=True, help="Run in foreground (for debugging)")
+def start(foreground):
+    """Launch the Vaani menu bar app (background by default)."""
+    import subprocess
 
-    # Check API keys
-    if not get_openai_key():
-        click.echo("Error: OpenAI API key not configured. Run 'vaani setup' first.")
-        raise SystemExit(1)
-    if not get_anthropic_key():
-        click.echo("Error: Anthropic API key not configured. Run 'vaani setup' first.")
-        raise SystemExit(1)
+    # Check API keys first
+    if not get_openai_key() or not get_anthropic_key():
+        click.echo("API keys not configured. Running setup...")
+        setup()
 
-    logger.info("Starting Vaani v%s", "0.1.0")
-    app = VaaniApp(config)
-    app.run()
+    # Kill existing Vaani processes
+    try:
+        subprocess.run(
+            ["pkill", "-f", "vaani start"],
+            capture_output=True,
+            timeout=5
+        )
+        time.sleep(1)
+    except Exception:
+        pass
+
+    # Foreground mode (interactive, for debugging)
+    if foreground:
+        config = load_config()
+        setup_logging(config)
+        logger.info("Starting Vaani v%s (foreground)", "0.1.0")
+        app = VaaniApp(config)
+        app.run()
+        return
+
+    # Background mode (daemon-like, default)
+    log_path = Path(VAANI_DIR) / "vaani.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        with open(log_path, "w") as log_file:
+            process = subprocess.Popen(
+                ["vaani", "start", "--foreground"],
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+                start_new_session=True  # Detaches from current session
+            )
+        click.echo(f"✓ Vaani started in background (PID: {process.pid})")
+        click.echo(f"Logs: tail -f {log_path}")
+    except Exception as e:
+        click.echo(f"Error starting Vaani: {e}")
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

@@ -11,6 +11,32 @@ import soundfile as sf
 
 logger = logging.getLogger(__name__)
 
+
+def list_microphones() -> list[dict]:
+    """Return a list of available microphones with their info."""
+    devices = sd.query_devices()
+    mics = []
+    for i, device in enumerate(devices):
+        if device['max_input_channels'] > 0:
+            mics.append({
+                'index': i,
+                'name': device['name'],
+                'channels': device['max_input_channels'],
+                'is_default': i == sd.default.device[0] if isinstance(sd.default.device, tuple) else i == sd.default.device,
+            })
+    return mics
+
+
+def get_default_microphone_index() -> int:
+    """Return the index of the default microphone."""
+    default = sd.query_devices(kind='input')
+    # Find index by matching device info
+    devices = sd.query_devices()
+    for i, device in enumerate(devices):
+        if device == default:
+            return i
+    return 0
+
 # Lazy-loaded VAD model (PyTorch + Silero is ~500MB, load on first use)
 _vad_model = None
 _vad_utils = None
@@ -42,10 +68,11 @@ def _load_vad():
 
 
 class AudioRecorder:
-    """Records audio from the default microphone into a growing buffer."""
+    """Records audio from a specified microphone into a growing buffer."""
 
-    def __init__(self, sample_rate: int = 16000) -> None:
+    def __init__(self, sample_rate: int = 16000, device: Optional[int] = None) -> None:
         self.sample_rate = sample_rate
+        self.device = device  # None means use default
         self._chunks: list[np.ndarray] = []
         self._stream: Optional[sd.InputStream] = None
         self._recording = threading.Event()
@@ -55,13 +82,16 @@ class AudioRecorder:
         self._chunks.clear()
         self._recording.set()
         self._stream = sd.InputStream(
+            device=self.device,
             samplerate=self.sample_rate,
             channels=1,
             dtype="float32",
             callback=self._audio_callback,
         )
         self._stream.start()
-        logger.info("Recording started")
+        device_info = sd.query_devices(self.device)
+        device_name = device_info['name'] if isinstance(device_info, dict) else "unknown"
+        logger.info("Recording started on device: %s", device_name)
 
     def _audio_callback(self, indata, frames, time_info, status):
         if status:
