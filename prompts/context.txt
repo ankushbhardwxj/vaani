@@ -1,0 +1,1 @@
+The user is dictating text that will be pasted directly into their current application (email, document, chat, code editor, etc.). The enhanced text should be ready to use as-is without any further editing.

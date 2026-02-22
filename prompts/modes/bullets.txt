@@ -1,0 +1,2 @@
+Mode: Bullets
+Convert the transcription into a clear, organized bullet point list. Each bullet should be a concise, complete thought. Use nested bullets for sub-points if appropriate. Use "- " for bullets.
