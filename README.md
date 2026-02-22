@@ -1,4 +1,6 @@
-# Vaani
+# Vaani · वाणी
+
+> *वाणी* — Sanskrit for *speech*, *voice*; the goddess of language and learning.
 
 **Voice to polished text, right at your cursor — anywhere on macOS.**
 
