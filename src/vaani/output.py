@@ -2,11 +2,61 @@
 
 import logging
 import subprocess
+import threading
 import time
+from typing import Optional
 
 from pynput.keyboard import Controller, Key
 
 logger = logging.getLogger(__name__)
+
+# Lazy-loaded spaCy NER model
+_nlp = None
+_nlp_lock = threading.Lock()
+
+
+def _load_nlp():
+    """Lazy-load spaCy NER model on first use."""
+    global _nlp
+    if _nlp is not None:
+        return
+
+    with _nlp_lock:
+        if _nlp is not None:
+            return
+        try:
+            import spacy
+            logger.info("Loading spaCy NER model...")
+            _nlp = spacy.load("en_core_web_sm")
+            logger.info("spaCy NER model loaded")
+        except Exception as e:
+            logger.warning("Failed to load spaCy NER: %s", e)
+            _nlp = None
+
+
+def _format_names_with_at(text: str) -> str:
+    """Use NER to identify person names and format with @ prefix."""
+    try:
+        _load_nlp()
+        if _nlp is None:
+            return text
+
+        doc = _nlp(text)
+        formatted = text
+
+        # Process entities in reverse order to maintain string positions
+        for ent in reversed(doc.ents):
+            if ent.label_ == "PERSON":
+                name = ent.text.strip()
+                # Skip if already formatted with @
+                if not name.startswith("@"):
+                    # Replace the name with @-prefixed version
+                    formatted = formatted[:ent.start_char] + "@" + name + formatted[ent.end_char:]
+
+        return formatted
+    except Exception as e:
+        logger.debug("NER formatting failed: %s", e)
+        return text
 
 
 def _get_clipboard() -> str:
@@ -38,12 +88,16 @@ def _set_clipboard(text: str) -> None:
 def paste_text(text: str, restore_delay_ms: int = 100) -> None:
     """Paste text at the current cursor position, preserving the clipboard.
 
-    1. Save current clipboard
-    2. Copy enhanced text to clipboard
-    3. Simulate Cmd+V
-    4. Wait for paste to be consumed
-    5. Restore original clipboard
+    1. Format names with NER (@ prefix for person names)
+    2. Save current clipboard
+    3. Copy enhanced text to clipboard
+    4. Simulate Cmd+V
+    5. Wait for paste to be consumed
+    6. Restore original clipboard
     """
+    # Format names with @ prefix using NER
+    text = _format_names_with_at(text)
+
     original = _get_clipboard()
 
     _set_clipboard(text)
