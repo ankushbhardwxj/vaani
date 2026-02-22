@@ -7,6 +7,8 @@ import threading
 from pathlib import Path
 from typing import Callable, Optional
 
+_LEVEL_BARS = " ▁▂▃▄▅▆▇█"
+
 import rumps
 
 from vaani.state import AppState
@@ -25,6 +27,7 @@ class VaaniMenuBar(rumps.App):
         on_toggle_recording: Optional[Callable] = None,
         on_mode_change: Optional[Callable[[str], None]] = None,
         active_mode: str = "cleanup",
+        get_level: Optional[Callable[[], float]] = None,
     ) -> None:
         icon = str(ICON_PATH) if ICON_PATH.exists() else None
         super().__init__("Vaani", icon=icon, template=True, quit_button=None)
@@ -32,6 +35,8 @@ class VaaniMenuBar(rumps.App):
         self._on_toggle_recording = on_toggle_recording
         self._on_mode_change = on_mode_change
         self._active_mode = active_mode
+        self._get_level = get_level
+        self._level_timer: Optional[rumps.Timer] = None
 
         self._build_menu()
 
@@ -83,16 +88,34 @@ class VaaniMenuBar(rumps.App):
     def _quit(self, sender) -> None:
         rumps.quit_application()
 
+    def _start_level_animation(self) -> None:
+        """Animate menubar title with live mic level bars."""
+        def tick(sender):
+            level = self._get_level() if self._get_level else 0.0
+            idx = int(level * (len(_LEVEL_BARS) - 1))
+            bar = _LEVEL_BARS[idx]
+            self.title = f"{bar} ●"
+
+        self._level_timer = rumps.Timer(tick, 0.1)
+        self._level_timer.start()
+
+    def _stop_level_animation(self) -> None:
+        if self._level_timer:
+            self._level_timer.stop()
+            self._level_timer = None
+
     def update_state(self, state: AppState) -> None:
         """Update menu bar title and recording button based on app state."""
         if state == AppState.IDLE:
+            self._stop_level_animation()
             self.title = "Vaani"
             self._record_item.title = "Start Recording"
         elif state == AppState.RECORDING:
-            self.title = "Listening..."
             self._record_item.title = "Stop Recording"
+            self._start_level_animation()
         elif state == AppState.PROCESSING:
-            self.title = "Processing..."
+            self._stop_level_animation()
+            self.title = "⟳"
             self._record_item.title = "Processing..."
 
     def show_notification(self, title: str, message: str) -> None:

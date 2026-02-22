@@ -80,6 +80,9 @@ def enhance(
             "Anthropic API key not found. Run 'vaani setup' to configure."
         )
 
+    if not transcription.strip():
+        return transcription
+
     system_prompt = _build_system_prompt(mode)
     client = anthropic.Anthropic(api_key=api_key)
 
@@ -93,7 +96,7 @@ def enhance(
         messages=[
             {
                 "role": "user",
-                "content": transcription,
+                "content": f"Transcription to enhance:\n\n{transcription}",
             }
         ],
     ) as stream:

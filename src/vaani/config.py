@@ -21,19 +21,19 @@ class VaaniConfig(BaseSettings):
     """Vaani configuration, loaded from ~/.vaani/config.yaml."""
 
     # Hotkey
-    hotkey: str = Field(default="<cmd>+<shift>+;", description="Global hotkey combo")
+    hotkey: str = Field(default="alt", description="Global hotkey combo")
 
     # Audio
     sample_rate: int = 16000
-    vad_threshold: float = 0.3
+    vad_threshold: float = 0.05
     max_recording_seconds: int = 600  # 10 minutes
 
     # STT
-    stt_model: str = "gpt-4o-mini-transcribe"
+    stt_model: str = "whisper-1"
 
     # LLM
     llm_model: str = "claude-haiku-4-5-20251001"
-    active_mode: str = "cleanup"
+    active_mode: str = "professional"
 
     # Audio feedback
     sounds_enabled: bool = True

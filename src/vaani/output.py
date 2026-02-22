@@ -4,7 +4,7 @@ import logging
 import subprocess
 import time
 
-import pyautogui
+from pynput.keyboard import Controller, Key
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +51,10 @@ def paste_text(text: str, restore_delay_ms: int = 100) -> None:
     # Small delay to ensure clipboard is set
     time.sleep(0.05)
 
-    # Simulate Cmd+V paste
-    pyautogui.hotkey("command", "v")
+    # Simulate Cmd+V paste using pynput (consistent with the hotkey listener)
+    _keyboard = Controller()
+    with _keyboard.pressed(Key.cmd):
+        _keyboard.tap('v')
 
     # Wait for the paste event to be consumed by the target app
     time.sleep(restore_delay_ms / 1000.0)

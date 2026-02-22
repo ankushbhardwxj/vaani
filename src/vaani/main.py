@@ -170,8 +170,8 @@ class VaaniApp:
 
             # Transcribe
             raw_text = transcribe(wav_bytes, model=self.config.stt_model)
-            if not raw_text:
-                logger.info("Empty transcription")
+            if not raw_text.strip() or len(raw_text.strip()) < 3:
+                logger.info("Empty or junk transcription: %r", raw_text)
                 if self.menubar:
                     self.menubar.show_notification("Vaani", "Could not transcribe audio")
                 return
@@ -216,10 +216,22 @@ class VaaniApp:
         self.config.active_mode = mode
         save_config(self.config)
 
+    def _prewarm(self) -> None:
+        """Pre-initialize recorder and VAD model in background to avoid first-use lag."""
+        try:
+            self._get_recorder()
+            from vaani.audio import _load_vad
+            _load_vad()
+            logger.info("Prewarm complete")
+        except Exception:
+            logger.exception("Prewarm failed")
+
     def run(self) -> None:
         """Start the app: hotkey listener + menu bar (main thread)."""
         from vaani.hotkey import HotkeyListener
         from vaani.menubar import VaaniMenuBar
+
+        threading.Thread(target=self._prewarm, daemon=True).start()
 
         # Start hotkey listener
         self._hotkey_listener = HotkeyListener(
@@ -235,6 +247,7 @@ class VaaniApp:
             on_toggle_recording=self.toggle_recording,
             on_mode_change=self._on_mode_change,
             active_mode=self.config.active_mode,
+            get_level=lambda: self._get_recorder().current_level,
         )
         self.menubar.run()  # Blocks until quit
 

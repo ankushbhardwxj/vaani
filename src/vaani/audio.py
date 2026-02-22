@@ -84,6 +84,15 @@ class AudioRecorder:
         audio = np.concatenate(self._chunks, axis=0).flatten()
         return audio
 
+    @property
+    def current_level(self) -> float:
+        """Return RMS level of the most recent audio (0.0–1.0)."""
+        if not self._chunks:
+            return 0.0
+        recent = np.concatenate(self._chunks[-4:])
+        rms = float(np.sqrt(np.mean(recent ** 2)))
+        return min(rms * 12, 1.0)  # scale so normal speech hits ~0.5–0.8
+
     def cancel(self) -> None:
         """Cancel recording, discard audio."""
         self._recording.clear()
@@ -178,17 +187,20 @@ def encode_wav(audio: np.ndarray, sample_rate: int = 16000) -> bytes:
 def process_audio(
     audio: np.ndarray,
     sample_rate: int = 16000,
-    vad_threshold: float = 0.3,
+    vad_threshold: float = 0.15,
 ) -> Optional[bytes]:
-    """Full audio pipeline: VAD trim → gain normalize → encode WAV.
+    """Full audio pipeline: gain normalize → VAD trim → encode WAV.
+
+    Normalization runs first so whisper-level audio is amplified before
+    VAD attempts to detect speech.
 
     Returns WAV bytes, or None if no speech detected.
     """
-    trimmed = trim_silence(audio, sample_rate, vad_threshold)
+    normalized = normalize_gain(audio)
+    trimmed = trim_silence(normalized, sample_rate, vad_threshold)
     if len(trimmed) == 0:
         return None
 
-    normalized = normalize_gain(trimmed)
-    wav_bytes = encode_wav(normalized, sample_rate)
+    wav_bytes = encode_wav(trimmed, sample_rate)
     logger.info("Audio processed: %d bytes WAV", len(wav_bytes))
     return wav_bytes
