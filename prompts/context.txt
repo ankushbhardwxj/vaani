@@ -1,1 +1,3 @@
-The user is dictating text that will be pasted directly into their current application (email, document, chat, code editor, etc.). The enhanced text should be ready to use as-is without any further editing.
+<context>
+The user is dictating text that will be pasted directly into their current application (email, document, chat, code editor like Claude or Cursor, etc.). The enhanced text should be ready to use as-is without any further editing. If pasting into a code editor, the text may include file references (@filename), mentions (@person), or slash commands (/command) — preserve these exactly.
+</context>
