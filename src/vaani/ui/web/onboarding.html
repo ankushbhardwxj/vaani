@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Vaani</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+    <!-- Step indicators -->
+    <div class="steps">
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+    </div>
+
+    <div class="content">
+        <!-- Step 0: Welcome -->
+        <div class="step active" id="step-welcome">
+            <div class="app-icon">V</div>
+            <h1>Welcome to Vaani</h1>
+            <p class="subtitle">
+                Voice to polished text, right at your cursor.
+                Hold a hotkey, speak, and Vaani transcribes and enhances your words instantly.
+            </p>
+        </div>
+
+        <!-- Step 1: API Keys -->
+        <div class="step left-align" id="step-apikeys">
+            <h2>API Keys</h2>
+            <p class="subtitle" style="max-width:100%">
+                Vaani uses OpenAI for transcription and Anthropic for text enhancement.
+                Your keys are stored securely in macOS Keychain.
+            </p>
+
+            <div class="form-group">
+                <label>
+                    OpenAI API Key
+                    <span id="openai-status" class="status status-missing">Not set</span>
+                </label>
+                <input type="password" id="openai-key" placeholder="sk-...">
+                <div class="input-hint">Get yours at <a href="#" onclick="return false;">platform.openai.com/api-keys</a></div>
+                <div id="openai-feedback" class="feedback"></div>
+                <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="saveApiKey('openai')">Save Key</button>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    Anthropic API Key
+                    <span id="anthropic-status" class="status status-missing">Not set</span>
+                </label>
+                <input type="password" id="anthropic-key" placeholder="sk-ant-...">
+                <div class="input-hint">Get yours at <a href="#" onclick="return false;">console.anthropic.com/settings/keys</a></div>
+                <div id="anthropic-feedback" class="feedback"></div>
+                <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="saveApiKey('anthropic')">Save Key</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Microphone -->
+        <div class="step" id="step-mic">
+            <h2>Microphone</h2>
+            <p class="subtitle">Select your microphone and test it to make sure Vaani can hear you.</p>
+
+            <div class="form-group">
+                <label>Microphone</label>
+                <select id="mic-select" onchange="onMicSelect(this)">
+                    <option value="">Default</option>
+                </select>
+            </div>
+
+            <button class="btn btn-secondary btn-sm" id="mic-test-btn" onclick="startMicTest()">
+                Test Microphone
+            </button>
+
+            <div class="level-meter">
+                <div class="level-meter-fill"></div>
+            </div>
+            <p class="input-hint" style="text-align:center">Speak into your microphone to see the level meter respond</p>
+        </div>
+
+        <!-- Step 3: Hotkey -->
+        <div class="step" id="step-hotkey">
+            <h2>Hotkey</h2>
+            <p class="subtitle">This is the key you hold down to record. Release it to stop and transcribe.</p>
+
+            <div class="hotkey-display" id="hotkey-display">alt</div>
+            <div style="margin-top:12px">
+                <button class="btn btn-secondary btn-sm" id="hotkey-record-btn" onclick="startHotkeyRecording()">
+                    Change
+                </button>
+            </div>
+            <p class="input-hint" style="margin-top:12px">Press Escape to cancel recording a new hotkey</p>
+        </div>
+
+        <!-- Step 4: Permissions -->
+        <div class="step" id="step-perms">
+            <h2>Permissions</h2>
+            <p class="subtitle">Vaani needs these macOS permissions to work. Grant them in System Settings if prompted.</p>
+
+            <ul class="perm-list">
+                <li class="perm-item" id="perm-mic">
+                    <div class="perm-icon missing">!</div>
+                    <div class="perm-label">
+                        <div>Microphone</div>
+                        <div class="input-hint">Required to capture your voice</div>
+                    </div>
+                </li>
+                <li class="perm-item" id="perm-accessibility">
+                    <div class="perm-icon missing">!</div>
+                    <div class="perm-label">
+                        <div>Accessibility</div>
+                        <div class="input-hint">Required to paste text and detect hotkeys</div>
+                    </div>
+                </li>
+            </ul>
+
+            <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="checkPermissions()">
+                Refresh Status
+            </button>
+        </div>
+
+        <!-- Step 5: Done -->
+        <div class="step" id="step-done">
+            <div class="app-icon">&#10003;</div>
+            <h1>You're All Set!</h1>
+            <p class="subtitle">
+                Vaani will now run in your menu bar. Hold your hotkey to record,
+                release to transcribe and paste.
+            </p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav">
+        <button class="btn btn-secondary" id="prev-btn" onclick="prevStep()" style="visibility:hidden">Back</button>
+        <div class="nav-spacer"></div>
+        <button class="btn btn-primary" id="next-btn" onclick="nextStep()">Get Started</button>
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+    ready(function() {
+        initWizard();
+        // Pre-load API key status for step 1
+        loadApiKeyStatus();
+    });
+</script>
+</body>
+</html>

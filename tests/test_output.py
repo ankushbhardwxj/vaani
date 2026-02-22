@@ -78,6 +78,7 @@ class TestFormatNamesWithAt:
     def test_graceful_fallback_when_nlp_none(self, monkeypatch):
         from vaani.output import _format_names_with_at
         monkeypatch.setattr("vaani.output._nlp", None)
+        monkeypatch.setattr("vaani.output._load_nlp", lambda: None)
         result = _format_names_with_at("Hello John")
         assert result == "Hello John"
 

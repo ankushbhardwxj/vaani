@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vaani Settings</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="settings-container">
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab active" data-tab="tab-general">General</button>
+        <button class="tab" data-tab="tab-mic">Microphone</button>
+        <button class="tab" data-tab="tab-apikeys">API Keys</button>
+        <button class="tab" data-tab="tab-about">About</button>
+    </div>
+
+    <div class="settings-content">
+        <!-- General Tab -->
+        <div class="tab-panel active" id="tab-general">
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label">Hotkey</div>
+                    <div class="setting-description">Hold to record, release to transcribe</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <div class="hotkey-display" id="hotkey-display">—</div>
+                    <button class="btn btn-secondary btn-sm" id="hotkey-record-btn" onclick="startHotkeyRecording()">Change</button>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label">Sound Effects</div>
+                    <div class="setting-description">Play sounds on record start/stop</div>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" id="sounds-toggle" onchange="saveSetting('sounds_enabled', this.checked)">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label">Launch at Login</div>
+                    <div class="setting-description">Start Vaani automatically when you log in</div>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" id="login-toggle" onchange="saveSetting('launch_at_login', this.checked)">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label">Enhancement Mode</div>
+                    <div class="setting-description">How Vaani processes your transcription</div>
+                </div>
+                <select id="mode-select" onchange="saveSetting('active_mode', this.value)" style="width:auto;min-width:140px">
+                    <option value="cleanup">Cleanup</option>
+                    <option value="professional">Professional</option>
+                    <option value="casual">Casual</option>
+                    <option value="bullets">Bullets</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Microphone Tab -->
+        <div class="tab-panel" id="tab-mic">
+            <div class="form-group">
+                <label>Microphone</label>
+                <select id="mic-select" onchange="onMicSelect(this)">
+                    <option value="">Default</option>
+                </select>
+            </div>
+
+            <button class="btn btn-secondary btn-sm" id="mic-test-btn" onclick="startMicTest()">
+                Test Microphone
+            </button>
+
+            <div class="level-meter">
+                <div class="level-meter-fill"></div>
+            </div>
+
+            <div class="form-group" style="margin-top:20px">
+                <label>VAD Sensitivity <span id="vad-value">0.05</span></label>
+                <input type="range" id="vad-slider" min="0.01" max="0.5" step="0.01" value="0.05"
+                       style="width:100%"
+                       oninput="document.getElementById('vad-value').textContent=this.value"
+                       onchange="saveSetting('vad_threshold', parseFloat(this.value))">
+                <div class="input-hint">Lower = more sensitive (picks up quieter speech). Higher = less sensitive (filters more noise).</div>
+            </div>
+        </div>
+
+        <!-- API Keys Tab -->
+        <div class="tab-panel" id="tab-apikeys">
+            <div class="form-group">
+                <label>
+                    OpenAI API Key
+                    <span id="openai-status" class="status status-missing">Not set</span>
+                </label>
+                <input type="password" id="openai-key" placeholder="sk-...">
+                <div id="openai-feedback" class="feedback"></div>
+                <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="saveApiKey('openai')">Save Key</button>
+            </div>
+
+            <div class="form-group" style="margin-top:16px">
+                <label>
+                    Anthropic API Key
+                    <span id="anthropic-status" class="status status-missing">Not set</span>
+                </label>
+                <input type="password" id="anthropic-key" placeholder="sk-ant-...">
+                <div id="anthropic-feedback" class="feedback"></div>
+                <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="saveApiKey('anthropic')">Save Key</button>
+            </div>
+        </div>
+
+        <!-- About Tab -->
+        <div class="tab-panel" id="tab-about">
+            <div class="about-info">
+                <div class="app-icon" style="margin:0 auto 16px">V</div>
+                <h2>Vaani</h2>
+                <div class="about-version" id="about-version">Version 0.1.0</div>
+                <div class="about-links">
+                    <button class="btn btn-secondary btn-sm" onclick="pywebview.api.open_log_file()">Open Log File</button>
+                    <button class="btn btn-secondary btn-sm" onclick="pywebview.api.open_config_dir()">Open Config Directory</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+    initTabs();
+    ready(function() {
+        loadSettingsGeneral();
+        loadApiKeyStatus();
+    });
+</script>
+</body>
+</html>

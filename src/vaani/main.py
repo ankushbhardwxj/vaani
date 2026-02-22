@@ -6,12 +6,12 @@ import os
 import threading
 import time
 from pathlib import Path
-from typing import Optional
 
 import click
 import numpy as np
 
 from vaani.config import (
+    CONFIG_FILE,
     VAANI_DIR,
     VaaniConfig,
     get_anthropic_key,
@@ -54,19 +54,54 @@ class VaaniApp:
 
     def __init__(self, config: VaaniConfig) -> None:
         self.config = config
+        self._config_mtime: float = CONFIG_FILE.stat().st_mtime if CONFIG_FILE.exists() else 0
         self.state = StateMachine()
         self.menubar = None
         self._recorder = None
-        self._recorder_device = None
         self._history = None
         self._hotkey_listener = None
+
+    def _reload_config_if_changed(self) -> None:
+        """Reload config from disk only if the file was modified since last check."""
+        try:
+            mtime = CONFIG_FILE.stat().st_mtime if CONFIG_FILE.exists() else 0
+        except OSError:
+            return
+
+        if mtime == self._config_mtime:
+            return
+
+        self._config_mtime = mtime
+        new_config = load_config()
+
+        # Reset recorder if any audio config changed
+        if new_config.microphone_device != self.config.microphone_device:
+            logger.info(
+                "Microphone changed: %s → %s",
+                self.config.microphone_device, new_config.microphone_device,
+            )
+            self._recorder = None
+        if new_config.sample_rate != self.config.sample_rate:
+            logger.info(
+                "Sample rate changed: %s → %s",
+                self.config.sample_rate, new_config.sample_rate,
+            )
+            self._recorder = None
+
+        # Restart hotkey listener if hotkey changed
+        if new_config.hotkey != self.config.hotkey:
+            logger.info("Hotkey changed: %s → %s", self.config.hotkey, new_config.hotkey)
+            self._restart_hotkey_listener(new_config.hotkey)
+
+        self.config = new_config
+        logger.info("Config reloaded from disk")
 
     def _get_recorder(self):
         from vaani.audio import AudioRecorder
         if self._recorder is None:
             self._recorder = AudioRecorder(
                 sample_rate=self.config.sample_rate,
-                device=self._recorder_device
+                device=self.config.microphone_device,
             )
         return self._recorder
 
@@ -76,8 +111,23 @@ class VaaniApp:
             self._history = HistoryStore()
         return self._history
 
+    def _restart_hotkey_listener(self, new_hotkey: str) -> None:
+        """Stop and restart the hotkey listener with a new hotkey."""
+        if self._hotkey_listener:
+            self._hotkey_listener.stop()
+        from vaani.hotkey import HotkeyListener
+        self._hotkey_listener = HotkeyListener(
+            hotkey=new_hotkey,
+            on_press=self.start_recording,
+            on_release=self.stop_recording,
+            on_cancel=self.cancel_recording,
+        )
+        self._hotkey_listener.start()
+
     def start_recording(self) -> None:
         """Begin recording audio from the microphone."""
+        self._reload_config_if_changed()
+
         if not self.state.transition(AppState.RECORDING):
             logger.warning("Cannot start recording in state: %s", self.state.state.value)
             if self.menubar and self.state.is_processing:
@@ -87,7 +137,7 @@ class VaaniApp:
         if self.menubar:
             self.menubar.update_state(AppState.RECORDING)
             if self.config.sounds_enabled:
-                self.menubar.play_sound("Tink")
+                self.menubar.play_sound("record_start")
 
 
         recorder = self._get_recorder()
@@ -113,7 +163,7 @@ class VaaniApp:
         audio = recorder.stop()
 
         if self.config.sounds_enabled and self.menubar:
-            self.menubar.play_sound("Pop")
+            self.menubar.play_sound("record_stop")
 
         if not self.state.transition(AppState.PROCESSING):
             return
@@ -218,29 +268,14 @@ class VaaniApp:
             if self.menubar:
                 self.menubar.update_state(AppState.IDLE)
 
-    def _on_mode_change(self, mode: str) -> None:
-        self.config.active_mode = mode
-        save_config(self.config)
-
-    def _on_microphone_change(self, device_index: Optional[int]) -> None:
-        """Handle microphone selection change."""
-        self._recorder_device = device_index
-        # Reset recorder to use new device on next recording
-        self._recorder = None
-        if device_index is not None:
-            import sounddevice as sd
-            device_info = sd.query_devices(device_index)
-            device_name = device_info['name'] if isinstance(device_info, dict) else "unknown"
-            logger.info("Microphone changed to: %s", device_name)
-        else:
-            logger.info("Microphone changed to: default")
-
     def _prewarm(self) -> None:
-        """Pre-initialize recorder and VAD model in background to avoid first-use lag."""
+        """Pre-initialize recorder, VAD, and NER models in background to avoid first-use lag."""
         try:
             self._get_recorder()
             from vaani.audio import _load_vad
             _load_vad()
+            from vaani.output import _load_nlp
+            _load_nlp()
             logger.info("Prewarm complete")
         except Exception:
             logger.exception("Prewarm failed")
@@ -264,10 +299,6 @@ class VaaniApp:
         # Menu bar must run on main thread (macOS requirement)
         self.menubar = VaaniMenuBar(
             on_toggle_recording=self.toggle_recording,
-            on_mode_change=self._on_mode_change,
-            active_mode=self.config.active_mode,
-            get_level=lambda: self._get_recorder().current_level,
-            on_microphone_change=self._on_microphone_change,
         )
 
         self.menubar.run()  # Blocks until quit
@@ -332,10 +363,28 @@ def setup():
 
 
 @cli.command()
+def settings():
+    """Open the Vaani settings panel."""
+    from vaani.ui.settings import show_settings
+    show_settings()
+
+
+@cli.command()
 @click.option("--foreground", is_flag=True, help="Run in foreground (for debugging)")
 def start(foreground):
     """Launch the Vaani menu bar app (background by default)."""
     import subprocess
+
+    config = load_config()
+
+    # Show onboarding on first run (before rumps starts)
+    if not config.onboarding_completed:
+        from vaani.ui.onboarding import show_onboarding
+        completed = show_onboarding()
+        if not completed:
+            click.echo("Onboarding cancelled. Run 'vaani start' to try again.")
+            return
+        config = load_config()  # Reload after onboarding saved changes
 
     # Check API keys first
     if not get_openai_key() or not get_anthropic_key():

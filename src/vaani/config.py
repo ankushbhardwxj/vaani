@@ -27,6 +27,7 @@ class VaaniConfig(BaseSettings):
     sample_rate: int = 16000
     vad_threshold: float = 0.05
     max_recording_seconds: int = 600  # 10 minutes
+    microphone_device: Optional[int] = None  # None = system default
 
     # STT
     stt_model: str = "whisper-1"
@@ -48,6 +49,9 @@ class VaaniConfig(BaseSettings):
 
     # Launch at login
     launch_at_login: bool = False
+
+    # Onboarding
+    onboarding_completed: bool = False
 
     model_config = {"env_prefix": "VAANI_"}
 

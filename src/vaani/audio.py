@@ -72,13 +72,44 @@ class AudioRecorder:
 
     def __init__(self, sample_rate: int = 16000, device: Optional[int] = None) -> None:
         self.sample_rate = sample_rate
-        self.device = device  # None means use default
         self._chunks: list[np.ndarray] = []
         self._stream: Optional[sd.InputStream] = None
         self._recording = threading.Event()
 
+        # Refresh PortAudio device list so hot-plugged devices are visible
+        sd._terminate()
+        sd._initialize()
+
+        self.device = self._validate_device(device)
+
+    @staticmethod
+    def _validate_device(device: Optional[int]) -> Optional[int]:
+        """Validate device index exists and has input channels. Falls back to default."""
+        if device is None:
+            return None
+        try:
+            info = sd.query_devices(device)
+            if info['max_input_channels'] > 0:
+                return device
+            logger.warning(
+                "Device %d (%s) has no input channels, falling back to default",
+                device, info['name'],
+            )
+        except Exception:
+            logger.warning("Device index %d not found, falling back to default", device)
+        return None
+
     def start(self) -> None:
         """Start recording audio."""
+        # Defensive cleanup: close any lingering stream from a prior start()
+        if self._stream is not None:
+            try:
+                self._stream.stop()
+                self._stream.close()
+            except Exception:
+                pass
+            self._stream = None
+
         self._chunks.clear()
         self._recording.set()
         self._stream = sd.InputStream(
@@ -91,7 +122,7 @@ class AudioRecorder:
         self._stream.start()
         device_info = sd.query_devices(self.device)
         device_name = device_info['name'] if isinstance(device_info, dict) else "unknown"
-        logger.info("Recording started on device: %s", device_name)
+        logger.info("Recording started on device: %s (index: %s)", device_name, self.device)
 
     def _audio_callback(self, indata, frames, time_info, status):
         if status:

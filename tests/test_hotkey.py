@@ -1,135 +1,212 @@
-"""Tests for vaani.hotkey — key parsing + callback dispatch (no start(), no macOS)."""
+"""Tests for vaani.hotkey — NSEvent-based hotkey parsing and dispatch."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
-from pynput import keyboard
 
-from vaani.hotkey import HotkeyListener
+from vaani.hotkey import (
+    HotkeyListener,
+    _ESC_KEYCODE,
+    _MODIFIER_FLAGS,
+    _NSFlagsChanged,
+    _NSKeyDown,
+    _NSKeyUp,
+)
+
+
+def _make_event(event_type, modifiers=0, char="", keycode=0):
+    """Build a minimal mock NSEvent."""
+    event = MagicMock()
+    event.type.return_value = event_type
+    event.modifierFlags.return_value = modifiers
+    event.charactersIgnoringModifiers.return_value = char
+    event.keyCode.return_value = keycode
+    return event
 
 
 # ---------------------------------------------------------------------------
-# Key parsing
+# Hotkey parsing
 # ---------------------------------------------------------------------------
 
 class TestKeyParsing:
-    def test_cmd_shift_semicolon(self):
-        hl = HotkeyListener(hotkey="<cmd>+<shift>+;")
-        assert keyboard.Key.cmd in hl._hotkey_keys
-        assert keyboard.Key.shift in hl._hotkey_keys
-        assert keyboard.KeyCode.from_char(";") in hl._hotkey_keys
-
     def test_single_modifier(self):
         hl = HotkeyListener(hotkey="alt")
-        assert keyboard.Key.alt in hl._hotkey_keys
-        assert len(hl._hotkey_keys) == 1
+        assert hl._modifier_flags == _MODIFIER_FLAGS["alt"]
+        assert hl._trigger_char is None
 
-    def test_ctrl_key(self):
+    def test_angle_bracket_variant(self):
+        hl = HotkeyListener(hotkey="<alt>")
+        assert hl._modifier_flags == _MODIFIER_FLAGS["alt"]
+        assert hl._trigger_char is None
+
+    def test_cmd_shift_semicolon(self):
+        hl = HotkeyListener(hotkey="<cmd>+<shift>+;")
+        assert hl._modifier_flags == _MODIFIER_FLAGS["cmd"] | _MODIFIER_FLAGS["shift"]
+        assert hl._trigger_char == ";"
+
+    def test_ctrl_a(self):
         hl = HotkeyListener(hotkey="<ctrl>+a")
-        assert keyboard.Key.ctrl in hl._hotkey_keys
-        assert keyboard.KeyCode.from_char("a") in hl._hotkey_keys
+        assert hl._modifier_flags == _MODIFIER_FLAGS["ctrl"]
+        assert hl._trigger_char == "a"
 
     def test_space_key(self):
         hl = HotkeyListener(hotkey="<cmd>+space")
-        assert keyboard.Key.cmd in hl._hotkey_keys
-        assert keyboard.Key.space in hl._hotkey_keys
+        assert hl._modifier_flags == _MODIFIER_FLAGS["cmd"]
+        assert hl._trigger_char == " "
+
+    def test_multiple_modifiers(self):
+        hl = HotkeyListener(hotkey="<cmd>+<shift>+<alt>")
+        expected = _MODIFIER_FLAGS["cmd"] | _MODIFIER_FLAGS["shift"] | _MODIFIER_FLAGS["alt"]
+        assert hl._modifier_flags == expected
+        assert hl._trigger_char is None
 
 
 # ---------------------------------------------------------------------------
-# Key normalization
+# Callback dispatch via _handle_event
 # ---------------------------------------------------------------------------
 
-class TestKeyNormalization:
-    def test_cmd_l_to_cmd(self):
-        hl = HotkeyListener()
-        assert hl._normalize_key(keyboard.Key.cmd_l) == keyboard.Key.cmd
-
-    def test_cmd_r_to_cmd(self):
-        hl = HotkeyListener()
-        assert hl._normalize_key(keyboard.Key.cmd_r) == keyboard.Key.cmd
-
-    def test_shift_l_to_shift(self):
-        hl = HotkeyListener()
-        assert hl._normalize_key(keyboard.Key.shift_l) == keyboard.Key.shift
-
-    def test_alt_r_to_alt(self):
-        hl = HotkeyListener()
-        assert hl._normalize_key(keyboard.Key.alt_r) == keyboard.Key.alt
-
-    def test_char_lowercased(self):
-        hl = HotkeyListener()
-        key = keyboard.KeyCode.from_char("A")
-        normalized = hl._normalize_key(key)
-        assert normalized == keyboard.KeyCode.from_char("a")
-
-
-# ---------------------------------------------------------------------------
-# Callback dispatch (direct _on_key_press / _on_key_release)
-# ---------------------------------------------------------------------------
-
-class TestCallbackDispatch:
-    def test_hotkey_triggers_on_press(self):
-        on_press = MagicMock()
-        hl = HotkeyListener(hotkey="<cmd>+<shift>+;", on_press=on_press)
-
-        hl._on_key_press(keyboard.Key.cmd_l)
-        hl._on_key_press(keyboard.Key.shift_l)
-        hl._on_key_press(keyboard.KeyCode.from_char(";"))
-
-        on_press.assert_called_once()
-
-    def test_release_triggers_on_release(self):
-        on_press = MagicMock()
-        on_release = MagicMock()
-        hl = HotkeyListener(
-            hotkey="<cmd>+<shift>+;", on_press=on_press, on_release=on_release
-        )
-
-        # Press all keys
-        hl._on_key_press(keyboard.Key.cmd_l)
-        hl._on_key_press(keyboard.Key.shift_l)
-        hl._on_key_press(keyboard.KeyCode.from_char(";"))
-
-        # Release one combo key
-        hl._on_key_release(keyboard.Key.cmd_l)
-        on_release.assert_called_once()
-
-    def test_escape_triggers_cancel(self):
-        on_press = MagicMock()
-        on_cancel = MagicMock()
-        hl = HotkeyListener(
-            hotkey="<cmd>+<shift>+;", on_press=on_press, on_cancel=on_cancel
-        )
-
-        # Press hotkey first
-        hl._on_key_press(keyboard.Key.cmd_l)
-        hl._on_key_press(keyboard.Key.shift_l)
-        hl._on_key_press(keyboard.KeyCode.from_char(";"))
-
-        # Then press Escape while hotkey is held
-        hl._on_key_press(keyboard.Key.esc)
-        on_cancel.assert_called_once()
-
-    def test_partial_hotkey_does_not_trigger(self):
-        on_press = MagicMock()
-        hl = HotkeyListener(hotkey="<cmd>+<shift>+;", on_press=on_press)
-
-        hl._on_key_press(keyboard.Key.cmd_l)
-        hl._on_key_press(keyboard.Key.shift_l)
-        # Missing semicolon
-
-        on_press.assert_not_called()
-
-    def test_escape_without_hotkey_does_not_cancel(self):
-        on_cancel = MagicMock()
-        hl = HotkeyListener(hotkey="<cmd>+;", on_cancel=on_cancel)
-
-        hl._on_key_press(keyboard.Key.esc)
-        on_cancel.assert_not_called()
-
-    def test_single_modifier_hotkey(self):
+class TestModifierOnlyHotkey:
+    def test_press_fires_on_press(self):
         on_press = MagicMock()
         hl = HotkeyListener(hotkey="alt", on_press=on_press)
 
-        hl._on_key_press(keyboard.Key.alt_l)
+        hl._handle_event(_make_event(_NSFlagsChanged, modifiers=_MODIFIER_FLAGS["alt"]))
         on_press.assert_called_once()
+
+    def test_release_fires_on_release(self):
+        on_press = MagicMock()
+        on_release = MagicMock()
+        hl = HotkeyListener(hotkey="alt", on_press=on_press, on_release=on_release)
+
+        hl._handle_event(_make_event(_NSFlagsChanged, modifiers=_MODIFIER_FLAGS["alt"]))
+        hl._handle_event(_make_event(_NSFlagsChanged, modifiers=0))
+
+        on_press.assert_called_once()
+        on_release.assert_called_once()
+
+    def test_no_double_press(self):
+        on_press = MagicMock()
+        hl = HotkeyListener(hotkey="alt", on_press=on_press)
+
+        mods = _MODIFIER_FLAGS["alt"]
+        hl._handle_event(_make_event(_NSFlagsChanged, modifiers=mods))
+        hl._handle_event(_make_event(_NSFlagsChanged, modifiers=mods))
+
+        on_press.assert_called_once()
+
+    def test_no_release_without_press(self):
+        on_release = MagicMock()
+        hl = HotkeyListener(hotkey="alt", on_release=on_release)
+
+        hl._handle_event(_make_event(_NSFlagsChanged, modifiers=0))
+        on_release.assert_not_called()
+
+
+class TestComboHotkey:
+    def test_press_fires_on_press(self):
+        on_press = MagicMock()
+        hl = HotkeyListener(hotkey="<cmd>+<shift>+;", on_press=on_press)
+
+        mods = _MODIFIER_FLAGS["cmd"] | _MODIFIER_FLAGS["shift"]
+        hl._handle_event(_make_event(_NSKeyDown, modifiers=mods, char=";"))
+        on_press.assert_called_once()
+
+    def test_key_release_fires_on_release(self):
+        on_press = MagicMock()
+        on_release = MagicMock()
+        hl = HotkeyListener(hotkey="<cmd>+<shift>+;", on_press=on_press, on_release=on_release)
+
+        mods = _MODIFIER_FLAGS["cmd"] | _MODIFIER_FLAGS["shift"]
+        hl._handle_event(_make_event(_NSKeyDown, modifiers=mods, char=";"))
+        hl._handle_event(_make_event(_NSKeyUp, modifiers=mods, char=";"))
+
+        on_press.assert_called_once()
+        on_release.assert_called_once()
+
+    def test_partial_modifiers_do_not_trigger(self):
+        on_press = MagicMock()
+        hl = HotkeyListener(hotkey="<cmd>+<shift>+;", on_press=on_press)
+
+        # Only cmd, missing shift
+        hl._handle_event(_make_event(_NSKeyDown, modifiers=_MODIFIER_FLAGS["cmd"], char=";"))
+        on_press.assert_not_called()
+
+    def test_wrong_char_does_not_trigger(self):
+        on_press = MagicMock()
+        hl = HotkeyListener(hotkey="<cmd>+;", on_press=on_press)
+
+        hl._handle_event(_make_event(_NSKeyDown, modifiers=_MODIFIER_FLAGS["cmd"], char="a"))
+        on_press.assert_not_called()
+
+
+class TestEscapeCancel:
+    def test_escape_cancels_modifier_hotkey(self):
+        on_press = MagicMock()
+        on_cancel = MagicMock()
+        hl = HotkeyListener(hotkey="alt", on_press=on_press, on_cancel=on_cancel)
+
+        # Press hotkey
+        hl._handle_event(_make_event(_NSFlagsChanged, modifiers=_MODIFIER_FLAGS["alt"]))
+        # Escape while pressed
+        hl._handle_event(_make_event(_NSKeyDown, keycode=_ESC_KEYCODE))
+
+        on_press.assert_called_once()
+        on_cancel.assert_called_once()
+
+    def test_escape_cancels_combo_hotkey(self):
+        on_press = MagicMock()
+        on_cancel = MagicMock()
+        hl = HotkeyListener(hotkey="<cmd>+;", on_press=on_press, on_cancel=on_cancel)
+
+        mods = _MODIFIER_FLAGS["cmd"]
+        hl._handle_event(_make_event(_NSKeyDown, modifiers=mods, char=";"))
+        hl._handle_event(_make_event(_NSKeyDown, keycode=_ESC_KEYCODE))
+
+        on_cancel.assert_called_once()
+
+    def test_escape_without_active_hotkey_does_not_cancel(self):
+        on_cancel = MagicMock()
+        hl = HotkeyListener(hotkey="alt", on_cancel=on_cancel)
+
+        hl._handle_event(_make_event(_NSKeyDown, keycode=_ESC_KEYCODE))
+        on_cancel.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# start / stop
+# ---------------------------------------------------------------------------
+
+class TestStartStop:
+    def test_start_registers_monitor(self):
+        mock_nsevent = MagicMock()
+        mock_monitor = MagicMock()
+        mock_nsevent.addGlobalMonitorForEventsMatchingMask_handler_.return_value = mock_monitor
+
+        with patch("vaani.hotkey._NSEvent", mock_nsevent):
+            hl = HotkeyListener(hotkey="alt")
+            hl.start()
+
+        mock_nsevent.addGlobalMonitorForEventsMatchingMask_handler_.assert_called_once()
+        assert hl._monitor is mock_monitor
+
+    def test_stop_removes_monitor(self):
+        mock_nsevent = MagicMock()
+        mock_monitor = MagicMock()
+
+        with patch("vaani.hotkey._NSEvent", mock_nsevent):
+            hl = HotkeyListener(hotkey="alt")
+            hl._monitor = mock_monitor
+            hl.stop()
+
+        mock_nsevent.removeMonitor_.assert_called_once_with(mock_monitor)
+        assert hl._monitor is None
+
+    def test_stop_is_idempotent(self):
+        mock_nsevent = MagicMock()
+
+        with patch("vaani.hotkey._NSEvent", mock_nsevent):
+            hl = HotkeyListener(hotkey="alt")
+            hl.stop()  # _monitor is already None
+            hl.stop()
+
+        mock_nsevent.removeMonitor_.assert_not_called()
