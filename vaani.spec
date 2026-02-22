@@ -108,8 +108,8 @@ app = BUNDLE(
     info_plist={
         'CFBundleName': 'Vaani',
         'CFBundleDisplayName': 'Vaani',
-        'CFBundleVersion': '0.2.0',
-        'CFBundleShortVersionString': '0.2.0',
+        'CFBundleVersion': '0.2.1',
+        'CFBundleShortVersionString': '0.2.1',
         'LSUIElement': True,  # Menu bar app — no dock icon
         'NSMicrophoneUsageDescription': 'Vaani needs microphone access to record your voice for transcription.',
         'NSAppleEventsUsageDescription': 'Vaani needs accessibility access to paste text at your cursor.',
