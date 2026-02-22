@@ -1,6 +1,5 @@
 # API keys — NEVER commit
 api_keys.yaml
-install.sh
 
 # Python
 __pycache__/
@@ -12,11 +11,7 @@ venv/
 # Build artifacts
 build/
 dist/
-*.spec
 
-# py2app / PyInstaller
-setup_app.py
-app_entry.py
 
 # macOS
 .DS_Store

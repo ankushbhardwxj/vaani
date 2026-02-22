@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write  # needed to create GitHub Releases
+
+jobs:
+  # ── PyPI ────────────────────────────────────────────────────────────────────
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    environment: release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install build twine
+
+      - name: Build distribution
+        run: python -m build
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: twine upload dist/*
+
+  # ── macOS .app ──────────────────────────────────────────────────────────────
+  build-app:
+    name: Build macOS app
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -e "." pyinstaller
+          python -m spacy download en_core_web_sm
+
+      - name: Build Vaani.app
+        run: pyinstaller vaani.spec
+
+      - name: Ad-hoc code sign
+        run: codesign --force --deep --sign - dist/Vaani.app
+
+      - name: Package as DMG
+        run: |
+          hdiutil create \
+            -volname "Vaani" \
+            -srcfolder dist/Vaani.app \
+            -ov -format UDZO \
+            "Vaani-${{ github.ref_name }}.dmg"
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vaani-dmg
+          path: "Vaani-${{ github.ref_name }}.dmg"
+
+  # ── GitHub Release ───────────────────────────────────────────────────────────
+  create-release:
+    name: Create GitHub Release
+    needs: [publish-pypi, build-app]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download DMG
+        uses: actions/download-artifact@v4
+        with:
+          name: Vaani-dmg
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "Vaani-${{ github.ref_name }}.dmg"
+          generate_release_notes: true
+          body: |
+            ## Install
+
+            ### Option A — pip (recommended)
+            ```bash
+            pip install vaani
+            python -m spacy download en_core_web_sm
+            vaani setup && vaani start
+            ```
+
+            ### Option B — macOS app download
+            1. Download `Vaani-${{ github.ref_name }}.dmg` below
+            2. Open the DMG and drag **Vaani.app** to `/Applications`
+            3. Remove the quarantine flag (required for unsigned apps):
+            ```bash
+            xattr -rd com.apple.quarantine /Applications/Vaani.app
+            ```
+            4. Open Vaani from `/Applications` or Spotlight
+
+            > **Why the xattr step?** Vaani is not yet notarized with Apple.
+            > This one-time command tells macOS you trust the app.
+            > [Learn more](https://support.apple.com/en-us/102445)
+
+            ---
+            Grant **Microphone**, **Accessibility**, and **Input Monitoring**
+            in System Settings → Privacy & Security on first launch.
