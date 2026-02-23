@@ -95,7 +95,6 @@ class TestTrimSilence:
         fake_model.reset_states = MagicMock()
 
         monkeypatch.setattr("vaani.audio._vad_model", fake_model)
-        monkeypatch.setattr("vaani.audio._vad_utils", MagicMock())
         self.fake_model = fake_model
 
     def test_speech_detected_returns_nonempty(self):
@@ -129,7 +128,6 @@ class TestProcessAudio:
         fake_model.return_value.item.return_value = 0.0  # no speech
         fake_model.reset_states = MagicMock()
         monkeypatch.setattr("vaani.audio._vad_model", fake_model)
-        monkeypatch.setattr("vaani.audio._vad_utils", MagicMock())
         self.fake_model = fake_model
 
     def test_returns_none_when_no_speech(self):

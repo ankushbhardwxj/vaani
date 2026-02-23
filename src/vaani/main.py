@@ -425,7 +425,7 @@ def start(foreground):
     if foreground:
         config = load_config()
         setup_logging(config)
-        logger.info("Starting Vaani v%s (foreground)", "0.2.3")
+        logger.info("Starting Vaani v%s (foreground)", "0.2.4")
         app = VaaniApp(config)
         app.run()
         return

@@ -37,9 +37,7 @@ def get_default_microphone_index() -> int:
             return i
     return 0
 
-# Lazy-loaded VAD model (PyTorch + Silero is ~500MB, load on first use)
 _vad_model = None
-_vad_utils = None
 _vad_lock = threading.Lock()
 
 TARGET_DBFS = -20.0  # Target RMS level for gain normalization
@@ -47,23 +45,17 @@ TARGET_DBFS = -20.0  # Target RMS level for gain normalization
 
 def _load_vad():
     """Load the Silero VAD model. Should be called during prewarm, not during recording."""
-    global _vad_model, _vad_utils
+    global _vad_model
     if _vad_model is not None:
         return
 
     with _vad_lock:
         if _vad_model is not None:
             return
-        import torch
 
         logger.info("Loading Silero VAD model...")
-        model, utils = torch.hub.load(
-            repo_or_dir="snakers4/silero-vad",
-            model="silero_vad",
-            trust_repo=True,
-        )
-        _vad_model = model
-        _vad_utils = utils
+        from silero_vad import load_silero_vad
+        _vad_model = load_silero_vad()
         logger.info("Silero VAD model loaded")
 
 
