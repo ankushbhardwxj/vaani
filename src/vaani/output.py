@@ -16,7 +16,7 @@ _nlp_lock = threading.Lock()
 
 
 def _load_nlp():
-    """Lazy-load spaCy NER model on first use."""
+    """Load spaCy NER model. Should be called during prewarm, not during recording."""
     global _nlp
     if _nlp is not None:
         return
@@ -32,6 +32,11 @@ def _load_nlp():
         except Exception as e:
             logger.warning("Failed to load spaCy NER: %s", e)
             _nlp = None
+
+
+def is_nlp_loaded() -> bool:
+    """Return True if the spaCy NER model has been loaded (or failed permanently)."""
+    return _nlp is not None
 
 
 def _format_names_with_at(text: str) -> str:

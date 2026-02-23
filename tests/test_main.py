@@ -1,5 +1,6 @@
 """Tests for vaani.main — VaaniApp orchestrator + CLI commands."""
 
+import threading
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import numpy as np
@@ -20,7 +21,7 @@ class TestVaaniAppStates:
     def app(self):
         config = VaaniConfig()
         app = VaaniApp(config)
-        # Mock the recorder so we don't touch hardware
+        app._prewarm_done.set()
         mock_recorder = MagicMock()
         mock_recorder.current_level = 0.5
         mock_recorder.stop.return_value = np.zeros(16000, dtype=np.float32)
@@ -210,3 +211,63 @@ class TestCLI:
         result = runner.invoke(cli, ["start", "--foreground"])
         assert result.exit_code == 0
         mock_app.run.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Prewarm gate — models must be loaded before recording starts
+# ---------------------------------------------------------------------------
+
+class TestPrewarmGate:
+    """Ensure start_recording blocks until prewarm is done."""
+
+    @pytest.fixture
+    def app(self):
+        config = VaaniConfig()
+        app = VaaniApp(config)
+        mock_recorder = MagicMock()
+        mock_recorder.current_level = 0.5
+        mock_recorder.stop.return_value = np.zeros(16000, dtype=np.float32)
+        app._recorder = mock_recorder
+        return app
+
+    def test_recording_blocked_until_prewarm_done(self, app):
+        """start_recording should not transition to RECORDING while prewarm is pending."""
+        app.PREWARM_TIMEOUT = 0.1
+        app.start_recording()
+        assert app.state.is_idle, "Recording must not start before prewarm completes"
+
+    def test_recording_allowed_after_prewarm(self, app):
+        """Once prewarm is signalled, recording should proceed normally."""
+        app._prewarm_done.set()
+        app.start_recording()
+        assert app.state.is_recording
+
+    def test_prewarm_sets_event_on_success(self, app):
+        with patch("vaani.audio._load_vad"), \
+             patch("vaani.output._load_nlp"):
+            app._prewarm()
+        assert app._prewarm_done.is_set()
+
+    def test_prewarm_sets_event_on_failure(self, app):
+        """Even if a model fails to load, the event fires so the app doesn't hang."""
+        with patch("vaani.audio._load_vad", side_effect=RuntimeError("download failed")):
+            app._prewarm()
+        assert app._prewarm_done.is_set()
+
+    @patch("vaani.output._load_nlp")
+    @patch("vaani.audio._load_vad")
+    def test_prewarm_loads_vad_and_nlp(self, mock_vad, mock_nlp, app):
+        app._prewarm()
+        mock_vad.assert_called_once()
+        mock_nlp.assert_called_once()
+
+    def test_delayed_prewarm_unblocks_recording(self, app):
+        """Simulate prewarm finishing after a short delay — recording should proceed."""
+        def delayed_set():
+            import time
+            time.sleep(0.05)
+            app._prewarm_done.set()
+
+        threading.Thread(target=delayed_set, daemon=True).start()
+        app.start_recording()
+        assert app.state.is_recording

@@ -46,7 +46,7 @@ TARGET_DBFS = -20.0  # Target RMS level for gain normalization
 
 
 def _load_vad():
-    """Lazy-load Silero VAD model on first recording."""
+    """Load the Silero VAD model. Should be called during prewarm, not during recording."""
     global _vad_model, _vad_utils
     if _vad_model is not None:
         return
@@ -56,7 +56,7 @@ def _load_vad():
             return
         import torch
 
-        logger.info("Loading Silero VAD model (first use)...")
+        logger.info("Loading Silero VAD model...")
         model, utils = torch.hub.load(
             repo_or_dir="snakers4/silero-vad",
             model="silero_vad",
@@ -65,6 +65,11 @@ def _load_vad():
         _vad_model = model
         _vad_utils = utils
         logger.info("Silero VAD model loaded")
+
+
+def is_vad_loaded() -> bool:
+    """Return True if the Silero VAD model has been loaded."""
+    return _vad_model is not None
 
 
 class AudioRecorder:

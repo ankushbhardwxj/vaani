@@ -52,6 +52,8 @@ def setup_logging(config: VaaniConfig) -> None:
 class VaaniApp:
     """Orchestrates the full voice-to-text pipeline."""
 
+    PREWARM_TIMEOUT = 120  # seconds to wait for models before allowing recording
+
     def __init__(self, config: VaaniConfig) -> None:
         self.config = config
         self._config_mtime: float = CONFIG_FILE.stat().st_mtime if CONFIG_FILE.exists() else 0
@@ -60,6 +62,7 @@ class VaaniApp:
         self._recorder = None
         self._history = None
         self._hotkey_listener = None
+        self._prewarm_done = threading.Event()
 
     def _reload_config_if_changed(self) -> None:
         """Reload config from disk only if the file was modified since last check."""
@@ -126,6 +129,12 @@ class VaaniApp:
 
     def start_recording(self) -> None:
         """Begin recording audio from the microphone."""
+        if not self._prewarm_done.wait(timeout=self.PREWARM_TIMEOUT):
+            logger.error("Prewarm did not complete within %ds — refusing to record", self.PREWARM_TIMEOUT)
+            if self.menubar:
+                self.menubar.show_notification("Vaani", "Models still loading, please wait...")
+            return
+
         self._reload_config_if_changed()
 
         if not self.state.transition(AppState.RECORDING):
@@ -269,16 +278,18 @@ class VaaniApp:
                 self.menubar.update_state(AppState.IDLE)
 
     def _prewarm(self) -> None:
-        """Pre-initialize recorder, VAD, and NER models in background to avoid first-use lag."""
+        """Pre-initialize recorder, VAD, and NER models before accepting recordings."""
         try:
             self._get_recorder()
             from vaani.audio import _load_vad
             _load_vad()
             from vaani.output import _load_nlp
             _load_nlp()
-            logger.info("Prewarm complete")
+            logger.info("Prewarm complete — all models loaded")
         except Exception:
             logger.exception("Prewarm failed")
+        finally:
+            self._prewarm_done.set()
 
     def run(self) -> None:
         """Start the app: hotkey listener + menu bar (main thread)."""
