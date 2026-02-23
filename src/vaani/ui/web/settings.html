@@ -64,6 +64,21 @@
                     <option value="bullets">Bullets</option>
                 </select>
             </div>
+
+            <div class="setting-section-header">Permissions</div>
+
+            <div class="setting-row">
+                <div>
+                    <div class="setting-label">Accessibility</div>
+                    <div class="setting-description">Required to paste text at your cursor</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span id="settings-accessibility-status" class="status status-missing">Checking…</span>
+                    <button class="btn btn-secondary btn-sm" id="settings-accessibility-btn" onclick="settingsRequestAccessibility()">
+                        Grant Access
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Microphone Tab -->
@@ -121,7 +136,7 @@
             <div class="about-info">
                 <div class="app-icon" style="margin:0 auto 16px">V</div>
                 <h2>Vaani</h2>
-                <div class="about-version" id="about-version">Version 0.1.0</div>
+                <div class="about-version" id="about-version">Version …</div>
                 <div class="about-links">
                     <button class="btn btn-secondary btn-sm" onclick="pywebview.api.open_log_file()">Open Log File</button>
                     <button class="btn btn-secondary btn-sm" onclick="pywebview.api.open_config_dir()">Open Config Directory</button>
@@ -137,6 +152,7 @@
     ready(function() {
         loadSettingsGeneral();
         loadApiKeyStatus();
+        loadSettingsPermissions();
     });
 </script>
 </body>

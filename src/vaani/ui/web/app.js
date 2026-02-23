@@ -347,6 +347,7 @@ async function checkPermissions() {
         if (perms) {
             updatePermIcon('perm-mic', perms.microphone);
             updatePermIcon('perm-accessibility', perms.accessibility);
+            updateGrantButton('accessibility-grant-btn', perms.accessibility);
         }
     } catch (e) {
         console.error('checkPermissions failed:', e);
@@ -358,6 +359,43 @@ function updatePermIcon(id, granted) {
     if (!icon) return;
     icon.className = 'perm-icon ' + (granted ? 'ok' : 'missing');
     icon.textContent = granted ? '\u2713' : '!';
+}
+
+function updateGrantButton(id, granted) {
+    var btn = document.getElementById(id);
+    if (!btn) return;
+    if (granted) {
+        btn.textContent = 'Granted';
+        btn.disabled = true;
+        btn.classList.add('btn-granted');
+    } else {
+        btn.textContent = 'Grant Access';
+        btn.disabled = false;
+        btn.classList.remove('btn-granted');
+    }
+}
+
+async function requestAccessibility() {
+    try {
+        var result = await window.pywebview.api.request_accessibility();
+        if (result && result.trusted) {
+            updatePermIcon('perm-accessibility', true);
+            updateGrantButton('accessibility-grant-btn', true);
+        } else {
+            // Prompt was shown but user hasn't granted yet — open System Settings
+            await window.pywebview.api.open_accessibility_settings();
+        }
+    } catch (e) {
+        console.error('requestAccessibility failed:', e);
+    }
+}
+
+async function openAccessibilitySettings() {
+    try {
+        await window.pywebview.api.open_accessibility_settings();
+    } catch (e) {
+        console.error('openAccessibilitySettings failed:', e);
+    }
 }
 
 // --- Settings Tabs ---
@@ -446,5 +484,47 @@ async function saveSetting(key, value) {
         await window.pywebview.api.save_config(data);
     } catch (e) {
         console.error('saveSetting failed:', e);
+    }
+}
+
+// --- Settings Permissions ---
+
+async function loadSettingsPermissions() {
+    try {
+        var perms = await window.pywebview.api.check_permissions();
+        if (perms) updateSettingsAccessibility(perms.accessibility);
+    } catch (e) {
+        console.error('loadSettingsPermissions failed:', e);
+    }
+}
+
+function updateSettingsAccessibility(granted) {
+    var status = document.getElementById('settings-accessibility-status');
+    var btn = document.getElementById('settings-accessibility-btn');
+    if (status) {
+        status.className = 'status ' + (granted ? 'status-ok' : 'status-missing');
+        status.textContent = granted ? 'Granted' : 'Not granted';
+    }
+    if (btn) {
+        if (granted) {
+            btn.textContent = 'Granted';
+            btn.disabled = true;
+        } else {
+            btn.textContent = 'Grant Access';
+            btn.disabled = false;
+        }
+    }
+}
+
+async function settingsRequestAccessibility() {
+    try {
+        var result = await window.pywebview.api.request_accessibility();
+        if (result && result.trusted) {
+            updateSettingsAccessibility(true);
+        } else {
+            await window.pywebview.api.open_accessibility_settings();
+        }
+    } catch (e) {
+        console.error('settingsRequestAccessibility failed:', e);
     }
 }

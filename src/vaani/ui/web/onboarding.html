@@ -99,7 +99,7 @@
         <!-- Step 4: Permissions -->
         <div class="step" id="step-perms">
             <h2>Permissions</h2>
-            <p class="subtitle">Vaani needs these macOS permissions to work. Grant them in System Settings if prompted.</p>
+            <p class="subtitle">Vaani needs these macOS permissions to work. Click "Grant Access" to open the system prompt.</p>
 
             <ul class="perm-list">
                 <li class="perm-item" id="perm-mic">
@@ -113,14 +113,29 @@
                     <div class="perm-icon missing">!</div>
                     <div class="perm-label">
                         <div>Accessibility</div>
-                        <div class="input-hint">Required to paste text and detect hotkeys</div>
+                        <div class="input-hint">Required to paste text at your cursor and detect hotkeys</div>
                     </div>
+                    <button class="btn btn-secondary btn-sm perm-grant-btn" id="accessibility-grant-btn" onclick="requestAccessibility()">
+                        Grant Access
+                    </button>
                 </li>
             </ul>
 
-            <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="checkPermissions()">
-                Refresh Status
-            </button>
+            <div style="margin-top:12px; display:flex; gap:8px; justify-content:center">
+                <button class="btn btn-secondary btn-sm" onclick="checkPermissions()">
+                    Refresh Status
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="openAccessibilitySettings()">
+                    Open System Settings
+                </button>
+            </div>
+            <p class="input-hint" style="text-align:center; margin-top:8px">
+                After granting access in System Settings, click "Refresh Status" to update.
+            </p>
+            <p class="input-hint" style="text-align:center; margin-top:6px">
+                <strong>Note:</strong> If running from a terminal, grant permissions to your terminal app
+                (e.g. Terminal, iTerm, Cursor) in System Settings.
+            </p>
         </div>
 
         <!-- Step 5: Done -->

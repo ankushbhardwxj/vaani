@@ -15,7 +15,7 @@ a = Analysis(
     pathex=[os.path.join(ROOT, 'src')],
     binaries=[],
     datas=[
-        (os.path.join(ROOT, 'prompts'), 'prompts'),
+        (os.path.join(ROOT, 'src', 'vaani', 'prompts'), os.path.join('vaani', 'prompts')),
         *([
             (os.path.join(ROOT, 'assets'), 'assets')
         ] if Path(os.path.join(ROOT, 'assets')).exists() else []),

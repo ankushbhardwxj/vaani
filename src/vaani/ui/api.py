@@ -1,10 +1,55 @@
 """Python backend exposed to the pywebview JS frontend."""
 
+import ctypes
+import ctypes.util
 import logging
 import threading
 from typing import Optional
 
+import objc
+
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# macOS Accessibility helpers (AXIsProcessTrusted)
+# ---------------------------------------------------------------------------
+
+_ax_lib = None
+
+
+def _get_ax_lib():
+    """Load ApplicationServices and set up AXIsProcessTrusted signatures."""
+    global _ax_lib
+    if _ax_lib is None:
+        _ax_lib = ctypes.cdll.LoadLibrary(
+            "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices"
+        )
+        _ax_lib.AXIsProcessTrusted.restype = ctypes.c_bool
+        _ax_lib.AXIsProcessTrustedWithOptions.restype = ctypes.c_bool
+        _ax_lib.AXIsProcessTrustedWithOptions.argtypes = [ctypes.c_void_p]
+    return _ax_lib
+
+
+def _ax_is_trusted() -> bool:
+    """Return True if the current process has Accessibility permission."""
+    try:
+        return _get_ax_lib().AXIsProcessTrusted()
+    except Exception:
+        return False
+
+
+def _ax_request_trust() -> bool:
+    """Check accessibility and trigger the macOS system prompt if not trusted."""
+    try:
+        from Foundation import NSDictionary
+        options = NSDictionary.dictionaryWithObject_forKey_(
+            True, "AXTrustedCheckOptionPrompt"
+        )
+        return _get_ax_lib().AXIsProcessTrustedWithOptions(
+            objc.pyobjc_id(options)
+        )
+    except Exception:
+        return False
 
 
 def _config():
@@ -152,7 +197,7 @@ class VaaniAPI:
         except Exception as e:
             return {"error": str(e)}
 
-    # --- Permissions (onboarding) ---
+    # --- Permissions (onboarding + settings) ---
 
     def check_permissions(self) -> dict:
         """Check macOS permissions (best-effort)."""
@@ -163,16 +208,29 @@ class VaaniAPI:
             perms["microphone"] = True
         except Exception:
             pass
+        perms["accessibility"] = _ax_is_trusted()
+        return perms
+
+    def request_accessibility(self) -> dict:
+        """Trigger the macOS Accessibility permission prompt.
+
+        Shows the system dialog asking the user to grant Accessibility access.
+        Returns the current trust status.
+        """
+        trusted = _ax_request_trust()
+        return {"trusted": trusted}
+
+    def open_accessibility_settings(self) -> dict:
+        """Open System Settings → Privacy & Security → Accessibility."""
         try:
             import subprocess
-            result = subprocess.run(
-                ["osascript", "-e", 'tell application "System Events" to return name of first process'],
-                capture_output=True, timeout=5,
-            )
-            perms["accessibility"] = result.returncode == 0
-        except Exception:
-            pass
-        return perms
+            subprocess.Popen([
+                "open",
+                "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+            ])
+            return {"ok": True}
+        except Exception as e:
+            return {"error": str(e)}
 
     def complete_onboarding(self) -> dict:
         """Mark onboarding as completed and save."""
@@ -192,7 +250,8 @@ class VaaniAPI:
 
     def get_version(self) -> str:
         """Return the app version."""
-        return "0.1.0"
+        from vaani import __version__
+        return __version__
 
     def open_log_file(self) -> dict:
         """Open the log file in the default editor."""

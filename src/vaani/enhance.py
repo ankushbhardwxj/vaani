@@ -11,20 +11,20 @@ from vaani.config import VAANI_DIR, get_anthropic_key
 
 logger = logging.getLogger(__name__)
 
-# Prompt directories: project prompts (version-controlled) and user overrides
-_PROJECT_PROMPTS = Path(__file__).parent.parent.parent / "prompts"
+# Prompt directories: bundled prompts (inside the package) and user overrides
+_BUNDLED_PROMPTS = Path(__file__).parent / "prompts"
 _USER_PROMPTS = VAANI_DIR / "prompts"
 
 
 def _load_prompt_file(relative_path: str) -> Optional[str]:
-    """Load a prompt file, preferring user override over project default."""
+    """Load a prompt file, preferring user override over bundled default."""
     user_path = _USER_PROMPTS / relative_path
     if user_path.exists():
         return user_path.read_text().strip()
 
-    project_path = _PROJECT_PROMPTS / relative_path
-    if project_path.exists():
-        return project_path.read_text().strip()
+    bundled_path = _BUNDLED_PROMPTS / relative_path
+    if bundled_path.exists():
+        return bundled_path.read_text().strip()
 
     return None
 

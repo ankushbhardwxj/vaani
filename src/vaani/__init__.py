@@ -1,3 +1,5 @@
 """Vaani — Voice to polished text, right at your cursor."""
 
-__version__ = "0.1.0"
+from importlib.metadata import version as _version
+
+__version__ = _version("vaani")

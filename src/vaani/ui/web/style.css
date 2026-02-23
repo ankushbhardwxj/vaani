@@ -334,6 +334,26 @@ select:focus {
     text-decoration: none;
 }
 
+.perm-grant-btn {
+    flex-shrink: 0;
+}
+
+.btn-granted {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* Settings section header */
+.setting-section-header {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    padding: 16px 0 6px;
+    margin-top: 4px;
+}
+
 /* Settings tabs */
 .tabs {
     display: flex;

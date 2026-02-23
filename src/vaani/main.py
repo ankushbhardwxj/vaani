@@ -27,6 +27,7 @@ from vaani.config import (
     save_config,
     set_api_key,
 )
+from vaani import __version__
 from vaani.state import AppState, StateMachine
 
 logger = logging.getLogger("vaani")
@@ -425,7 +426,7 @@ def start(foreground):
     if foreground:
         config = load_config()
         setup_logging(config)
-        logger.info("Starting Vaani v%s (foreground)", "0.2.4")
+        logger.info("Starting Vaani v%s (foreground)", __version__)
         app = VaaniApp(config)
         app.run()
         return
