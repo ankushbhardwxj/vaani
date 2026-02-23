@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vaani"
-version = "0.2.2"
+version = "0.2.3"
 description = "macOS menu bar app that captures voice, transcribes, and enhances text with AI"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -26,6 +26,7 @@ dependencies = [
     "click>=8.0",
     "spacy>=3.0",
     "pywebview>=5.0",
+    "certifi",
 ]
 
 [project.optional-dependencies]

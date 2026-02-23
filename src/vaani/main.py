@@ -7,6 +7,13 @@ import threading
 import time
 from pathlib import Path
 
+# macOS python.org installs ship without SSL root certs — urllib (used by
+# torch.hub) fails with CERTIFICATE_VERIFY_FAILED.  certifi is a direct
+# dependency (see pyproject.toml) so it is always available after install.
+if not os.environ.get("SSL_CERT_FILE"):
+    import certifi
+    os.environ["SSL_CERT_FILE"] = certifi.where()
+
 import click
 import numpy as np
 
@@ -418,7 +425,7 @@ def start(foreground):
     if foreground:
         config = load_config()
         setup_logging(config)
-        logger.info("Starting Vaani v%s (foreground)", "0.2.2")
+        logger.info("Starting Vaani v%s (foreground)", "0.2.3")
         app = VaaniApp(config)
         app.run()
         return
@@ -435,8 +442,11 @@ def start(foreground):
                 stderr=subprocess.STDOUT,
                 start_new_session=True  # Detaches from current session
             )
-        click.echo(f"✓ Vaani started in background (PID: {process.pid})")
-        click.echo(f"Logs: tail -f {log_path}")
+        click.echo()
+        click.echo("✓ Vaani is running!")
+        click.echo()
+        click.echo(f"  Look for the Vaani icon in your menu bar (top of your screen).")
+        click.echo(f"  Hold [{config.hotkey}] to record, release to transcribe.")
     except Exception as e:
         click.echo(f"Error starting Vaani: {e}")
         raise SystemExit(1)
