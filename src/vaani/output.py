@@ -4,8 +4,6 @@ import logging
 import subprocess
 import threading
 import time
-from typing import Optional
-
 from pynput.keyboard import Controller, Key
 
 logger = logging.getLogger(__name__)
@@ -64,6 +62,46 @@ def _format_names_with_at(text: str) -> str:
         return text
 
 
+def _do_cmd_v() -> None:
+    """Press Cmd+V using pynput. Must be called on the main thread when NSApp is active."""
+    keyboard = Controller()
+    with keyboard.pressed(Key.cmd):
+        keyboard.tap('v')
+
+
+def _simulate_cmd_v(restore_delay_ms: int) -> None:
+    """Simulate Cmd+V, dispatching to the main thread if rumps/NSApp owns it.
+
+    macOS TSM (Text Services Manager) APIs used by pynput crash with
+    _dispatch_assert_queue_fail when called off the main thread while
+    an NSApplication run loop is active.
+    """
+    try:
+        from AppKit import NSApp
+        from PyObjCTools import AppHelper
+
+        app = NSApp()
+        if app is not None and app.isRunning():
+            done = threading.Event()
+
+            def _on_main():
+                try:
+                    _do_cmd_v()
+                    time.sleep(restore_delay_ms / 1000.0)
+                finally:
+                    done.set()
+
+            AppHelper.callAfter(_on_main)
+            if not done.wait(timeout=10):
+                logger.error("Timed out dispatching Cmd+V to main thread")
+            return
+    except ImportError:
+        pass
+
+    _do_cmd_v()
+    time.sleep(restore_delay_ms / 1000.0)
+
+
 def _get_clipboard() -> str:
     """Get current clipboard contents via pbpaste."""
     try:
@@ -110,13 +148,7 @@ def paste_text(text: str, restore_delay_ms: int = 100) -> None:
     # Small delay to ensure clipboard is set
     time.sleep(0.05)
 
-    # Simulate Cmd+V paste using pynput Controller
-    _keyboard = Controller()
-    with _keyboard.pressed(Key.cmd):
-        _keyboard.tap('v')
-
-    # Wait for the paste event to be consumed by the target app
-    time.sleep(restore_delay_ms / 1000.0)
+    _simulate_cmd_v(restore_delay_ms)
 
     # Restore original clipboard
     _set_clipboard(original)

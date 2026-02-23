@@ -67,7 +67,7 @@ class VaaniMenuBar(rumps.App):
             ).start()
 
     def _open_preferences(self, sender) -> None:
-        """Open settings window in-process (instant, no subprocess)."""
+        """Open settings window in-process (native NSWindow, instant)."""
         from vaani.ui.settings import open_settings
         open_settings()
 

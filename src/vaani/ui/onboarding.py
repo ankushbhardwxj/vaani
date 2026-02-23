@@ -1,6 +1,7 @@
 """Onboarding wizard window using pywebview."""
 
 import logging
+import threading
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -27,11 +28,15 @@ def show_onboarding() -> bool:
         on_top=True,
     )
 
-    # Give the API a reference so close_window() can destroy it
     api._window = window
+
+    def _wait_and_destroy():
+        api.close_requested.wait()
+        window.destroy()
+
+    threading.Thread(target=_wait_and_destroy, daemon=True).start()
 
     webview.start()
 
-    # Check if onboarding was completed
     config = load_config()
     return config.onboarding_completed

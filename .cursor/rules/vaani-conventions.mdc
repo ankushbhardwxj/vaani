@@ -1,0 +1,31 @@
+---
+description: Vaani project conventions — architecture, UI, and model loading rules
+alwaysApply: true
+---
+
+# Vaani Conventions
+
+## UI Windows
+
+- **Onboarding** runs via pywebview in the CLI process (before rumps starts). No event loop conflict.
+- **Settings from menu bar** runs as a native NSWindow + WKWebView in-process with rumps. This is the standard macOS pattern — pywebview cannot coexist with rumps' event loop on the main thread.
+- **Settings from CLI** (`vaani settings`) runs via pywebview standalone. No conflict.
+- The JS bridge method list for the native NSWindow path is auto-generated from `VaaniAPI` via introspection. Never hardcode method lists.
+- Never call `window.destroy()` from inside a pywebview API handler — it deadlocks the WKWebView bridge. Use a `threading.Event` to signal close; a watcher thread outside the handler calls `destroy()`.
+
+## Model Loading
+
+- All heavy models (Silero VAD, spaCy NER) must be loaded during **prewarm**, before the first recording. Never load models lazily during a recording pipeline.
+- `VaaniApp._prewarm_done` (a `threading.Event`) gates `start_recording()` — recording is blocked until prewarm signals completion.
+
+## Main Thread Constraints
+
+- macOS TSM (Text Services Manager) APIs — used by `pynput.keyboard.Controller` — **must** run on the main thread when an `NSApplication` run loop is active (rumps). Calling them from a background thread causes `_dispatch_assert_queue_fail` → `SIGTRAP` crash.
+- Use `PyObjCTools.AppHelper.callAfter()` to dispatch main-thread-only work from background threads. Use `threading.Event` for synchronization if the caller must wait for the result.
+- The `_process_audio` pipeline runs on a daemon thread. Any macOS API it needs that requires the main thread must be dispatched via `callAfter`.
+
+## Code Quality
+
+- Prefer clean Python over unnecessary abstractions, but use PyObjC when it's the right tool (e.g., in-process NSWindow for instant settings).
+- No hardcoded registrations that must be kept in sync manually. Use introspection or built-in library features instead.
+- No magic timer values as workarounds for race conditions. Use proper synchronization primitives (Events, Locks).

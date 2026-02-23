@@ -1,53 +1,92 @@
 #!/usr/bin/env bash
-# Vaani installer
-# Usage: curl -fsSL https://ankushbhardwxj.github.io/vaani/install.sh | bash
-set -e
+set -euo pipefail
 
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+BOLD='\033[1m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+RESET='\033[0m'
 
-echo ""
-echo "  वाणी  Vaani installer"
-echo "  ─────────────────────"
-echo ""
+info()  { printf "${BOLD}%s${RESET}\n" "$*"; }
+ok()    { printf "${GREEN}✓ %s${RESET}\n" "$*"; }
+warn()  { printf "${YELLOW}⚠ %s${RESET}\n" "$*"; }
+fail()  { printf "${RED}✗ %s${RESET}\n" "$*"; exit 1; }
 
-# Check Python 3.10+
-if ! command -v python3 &>/dev/null; then
-    echo -e "${RED}Error:${NC} Python 3 not found."
-    echo "  Install it: brew install python@3.12"
-    exit 1
+LINK_DIR="/usr/local/bin"
+
+# --- Preflight ---
+
+info "Installing Vaani..."
+echo
+
+command -v python3 >/dev/null 2>&1 || fail "python3 not found. Install Python 3.10+ first."
+
+PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
+MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
+if [ "$MAJOR" -lt 3 ] || { [ "$MAJOR" -eq 3 ] && [ "$MINOR" -lt 10 ]; }; then
+    fail "Python 3.10+ required (found $PYTHON_VERSION)"
+fi
+ok "Python $PYTHON_VERSION"
+
+# --- Install ---
+
+info "Installing vaani package..."
+pip3 install vaani || fail "pip install failed"
+ok "Package installed"
+
+# --- Locate the binary ---
+
+VAANI_BIN=$(python3 -c "
+import sysconfig, os
+scripts = sysconfig.get_path('scripts')
+candidate = os.path.join(scripts, 'vaani')
+if os.path.exists(candidate):
+    print(candidate)
+else:
+    # Check user scripts dir
+    user_scripts = sysconfig.get_path('scripts', scheme='posix_user')
+    user_candidate = os.path.join(user_scripts, 'vaani')
+    if os.path.exists(user_candidate):
+        print(user_candidate)
+" 2>/dev/null)
+
+if [ -z "${VAANI_BIN:-}" ]; then
+    VAANI_BIN=$(command -v vaani 2>/dev/null || true)
 fi
 
-PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)')
-PY_MAJOR=$(python3 -c 'import sys; print(sys.version_info.major)')
-if [ "$PY_MAJOR" -lt 3 ] || [ "$PY_MINOR" -lt 10 ]; then
-    echo -e "${RED}Error:${NC} Python 3.10+ required (you have 3.${PY_MINOR})"
-    echo "  Install it: brew install python@3.12"
-    exit 1
+if [ -z "${VAANI_BIN:-}" ]; then
+    fail "Could not find the vaani binary after install. Try: pip3 install --user vaani"
 fi
 
-echo -e "  ${GREEN}✓${NC} Python 3.${PY_MINOR} found"
+ok "Found vaani at $VAANI_BIN"
 
-# Install
-echo "  Installing Vaani from PyPI..."
-pip install -q --upgrade vaani
-echo -e "  ${GREEN}✓${NC} Vaani installed"
+# --- Symlink to PATH if needed ---
 
-# Download spaCy model (needed for NER name formatting)
-echo "  Downloading spaCy language model..."
-python3 -m spacy download en_core_web_sm -q
-echo -e "  ${GREEN}✓${NC} spaCy model ready"
+if command -v vaani >/dev/null 2>&1; then
+    ok "vaani is already on PATH"
+else
+    info "Linking vaani to $LINK_DIR..."
+    sudo mkdir -p "$LINK_DIR"
+    sudo ln -sf "$VAANI_BIN" "$LINK_DIR/vaani"
+    ok "Linked to $LINK_DIR/vaani"
+fi
 
-echo ""
-echo "  Running setup (you'll be prompted for your API keys)..."
-echo ""
+# --- Download spaCy model ---
 
-vaani setup
+if python3 -c "import spacy; spacy.load('en_core_web_sm')" 2>/dev/null; then
+    ok "spaCy model already installed"
+else
+    info "Downloading spaCy language model..."
+    python3 -m spacy download en_core_web_sm -q || warn "spaCy model download failed (NER name formatting will be skipped)"
+    ok "spaCy model installed"
+fi
 
-echo ""
-echo -e "  ${GREEN}Done!${NC} Start Vaani with:"
-echo ""
-echo "    vaani start"
-echo ""
-echo -e "  ${YELLOW}Note:${NC} On first launch, grant Microphone, Accessibility,"
-echo "  and Input Monitoring in System Settings → Privacy & Security."
-echo ""
+# --- Done ---
+
+echo
+ok "Vaani installed successfully!"
+echo
+info "Get started:"
+echo "  vaani start"
+echo

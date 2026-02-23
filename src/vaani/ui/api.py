@@ -22,21 +22,18 @@ class VaaniAPI:
         self._mic_testing = threading.Event()
         self._current_level: float = 0.0
         self._window = None  # set by launcher to allow close_window()
+        self.close_requested = threading.Event()
 
     # --- Window ---
 
     def close_window(self) -> dict:
-        """Close the window (pywebview .destroy() or native NSWindow .close())."""
-        try:
-            if self._window:
-                if hasattr(self._window, "destroy"):
-                    self._window.destroy()   # pywebview (onboarding / CLI)
-                else:
-                    self._window.close()     # native NSWindow (in-process)
-            return {"ok": True}
-        except Exception as e:
-            logger.exception("Failed to close window")
-            return {"error": str(e)}
+        """Signal that the window should close.
+
+        The actual destroy() is performed by a watcher thread in the launcher
+        so we never tear down the WKWebView from inside its own JS bridge call.
+        """
+        self.close_requested.set()
+        return {"ok": True}
 
     # --- Config ---
 

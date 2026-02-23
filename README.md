@@ -25,10 +25,11 @@ The name "Vaani" (वाणी) comes from Sanskrit, meaning *speech* or *voice*
 ## Quick Start
 
 ```bash
-pip install vaani
-python -m spacy download en_core_web_sm
+curl -sSL https://raw.githubusercontent.com/ankushbhardwxj/vaani/main/install.sh | sh
 vaani start
 ```
+
+The install script installs Vaani via pip, sets up the `vaani` command on your PATH, and downloads required language models.
 
 On first launch, Vaani walks you through entering your API keys and granting macOS permissions. Then:
 
@@ -179,6 +180,16 @@ No data is retained on Vaani's servers because there are no Vaani servers. All c
 │  HistoryStore (SQLite)      │
 │  Fernet-encrypted records   │
 └─────────────────────────────┘
+```
+
+---
+
+## Uninstall
+
+```bash
+pip uninstall vaani
+rm -rf ~/.vaani
+sudo rm -f /usr/local/bin/vaani
 ```
 
 ---

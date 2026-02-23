@@ -1,5 +1,7 @@
-"""Settings window — native PyObjC WKWebView, runs in the menu bar process."""
+"""Settings window — native NSWindow + WKWebView for in-process use (menu bar),
+pywebview for standalone CLI use."""
 
+import inspect
 import json
 import logging
 import threading
@@ -20,53 +22,60 @@ logger = logging.getLogger(__name__)
 
 WEB_DIR = Path(__file__).parent / "web"
 
-# Singleton — one settings window at a time.
 _window = None
-# prevent prevent GC of ObjC helper objects (PyObjC objects can't hold Python attrs)
 _refs = {}
 
-# NSWindowStyleMask: titled | closable | miniaturizable | resizable
-_STYLE = 1 | 2 | 4 | 8
+_STYLE = 1 | 2 | 4 | 8  # titled | closable | miniaturizable | resizable
 
 # ---------------------------------------------------------------------------
-# JS shim injected at document-start.
-# Creates window.pywebview.api.* that proxy to WKScriptMessageHandler,
-# then fires 'pywebviewready' so the existing ready() helper in app.js works.
+# JS bridge — auto-generated from VaaniAPI public methods
 # ---------------------------------------------------------------------------
-_BRIDGE_JS = """
-(function() {
-    var cbs = {}, seq = 0;
-    window._resolveCallback = function(id, result) {
+
+_BRIDGE_JS_TEMPLATE = """\
+(function() {{
+    var cbs = {{}}, seq = 0;
+    window._resolveCallback = function(id, result) {{
         var fn = cbs[id];
-        if (fn) { delete cbs[id]; fn(result); }
-    };
-    function m(name) {
-        return function() {
+        if (fn) {{ delete cbs[id]; fn(result); }}
+    }};
+    function m(name) {{
+        return function() {{
             var args = [].slice.call(arguments);
-            return new Promise(function(resolve) {
+            return new Promise(function(resolve) {{
                 var id = String(++seq);
                 cbs[id] = resolve;
-                window.webkit.messageHandlers.api.postMessage({
+                window.webkit.messageHandlers.api.postMessage({{
                     method: name, args: args, callbackId: id
-                });
-            });
-        };
-    }
-    var api = {};
-    ['close_window','get_config','save_config','get_api_keys_status',
-     'set_api_key','list_microphones','start_mic_test','get_mic_level',
-     'stop_mic_test','get_hotkey','set_hotkey','check_permissions',
-     'complete_onboarding','get_version','open_log_file','open_config_dir'
-    ].forEach(function(n) { api[n] = m(n); });
-    window.pywebview = { api: api };
+                }});
+            }});
+        }};
+    }}
+    var api = {{}};
+    {method_list}.forEach(function(n) {{ api[n] = m(n); }});
+    window.pywebview = {{ api: api }};
     window.dispatchEvent(new Event('pywebviewready'));
-})();
+}})();
 """
+
+
+def _get_api_methods() -> list[str]:
+    """Discover all public methods on VaaniAPI via introspection."""
+    from vaani.ui.api import VaaniAPI
+    return [
+        name for name, _ in inspect.getmembers(VaaniAPI, predicate=inspect.isfunction)
+        if not name.startswith("_")
+    ]
+
+
+def _build_bridge_js() -> str:
+    methods = _get_api_methods()
+    return _BRIDGE_JS_TEMPLATE.format(method_list=json.dumps(methods))
 
 
 # ---------------------------------------------------------------------------
 # ObjC helpers
 # ---------------------------------------------------------------------------
+
 class _MessageHandler(NSObject):
     """WKScriptMessageHandler — routes JS calls to VaaniAPI methods."""
 
@@ -94,7 +103,6 @@ class _MessageHandler(NSObject):
                     self.webview.evaluateJavaScript_completionHandler_, js, None
                 )
 
-        # Run off the main thread so the UI stays responsive.
         threading.Thread(target=_call, daemon=True).start()
 
 
@@ -108,13 +116,11 @@ class _WindowDelegate(NSObject):
 
 
 # ---------------------------------------------------------------------------
-# Public API
+# In-process settings (menu bar) — native NSWindow + WKWebView
 # ---------------------------------------------------------------------------
-def open_settings():
-    """Open (or bring to front) the settings window inside the running app.
 
-    Uses a native NSWindow + WKWebView — no subprocess, no pywebview.
-    """
+def open_settings():
+    """Open (or bring to front) the settings window inside the running app."""
     global _window
 
     if _window is not None:
@@ -126,17 +132,16 @@ def open_settings():
 
     api = VaaniAPI()
 
-    # --- WKWebView configuration with JS bridge ---
     wk_config = WKWebViewConfiguration.alloc().init()
     uc = WKUserContentController.alloc().init()
 
+    bridge_js = _build_bridge_js()
     script = WKUserScript.alloc().initWithSource_injectionTime_forMainFrameOnly_(
-        _BRIDGE_JS, 0, True  # 0 = WKUserScriptInjectionTimeAtDocumentStart
+        bridge_js, 0, True  # 0 = AtDocumentStart
     )
     uc.addUserScript_(script)
     wk_config.setUserContentController_(uc)
 
-    # --- NSWindow ---
     frame = NSMakeRect(0, 0, 600, 500)
     win = NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(
         frame, _STYLE, NSBackingStoreBuffered, False
@@ -148,7 +153,6 @@ def open_settings():
     delegate = _WindowDelegate.alloc().init()
     win.setDelegate_(delegate)
 
-    # --- WKWebView ---
     wv = WKWebView.alloc().initWithFrame_configuration_(
         win.contentView().bounds(), wk_config
     )
@@ -159,11 +163,9 @@ def open_settings():
     handler.webview = wv
     uc.addScriptMessageHandler_name_(handler, "api")
 
-    # prevent GC of ObjC helpers (can't set attrs on ObjC objects directly)
     _refs["delegate"] = delegate
     _refs["handler"] = handler
 
-    # --- Load HTML ---
     html_url = NSURL.fileURLWithPath_(str(WEB_DIR / "settings.html"))
     wv.loadFileURL_allowingReadAccessToURL_(
         html_url, NSURL.fileURLWithPath_(str(WEB_DIR) + "/")
@@ -176,6 +178,16 @@ def open_settings():
     _window = win
     api._window = win
 
+    def _wait_and_close():
+        api.close_requested.wait()
+        AppHelper.callAfter(win.close)
+
+    threading.Thread(target=_wait_and_close, daemon=True).start()
+
+
+# ---------------------------------------------------------------------------
+# Standalone settings (CLI) — pywebview
+# ---------------------------------------------------------------------------
 
 def show_settings():
     """Standalone mode (for ``vaani settings`` CLI) — uses pywebview."""
@@ -195,6 +207,13 @@ def show_settings():
         background_color="#f5f5f7",
     )
     api._window = window
+
+    def _wait_and_destroy():
+        api.close_requested.wait()
+        window.destroy()
+
+    threading.Thread(target=_wait_and_destroy, daemon=True).start()
+
     webview.start()
 
 
