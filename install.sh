@@ -20,7 +20,7 @@ info "Installing Vaani..."
 echo
 
 command -v python3 >/dev/null 2>&1 || fail "python3 not found. Install Python 3.10+ first."
-command -v pip3 >/dev/null 2>&1 || fail "pip3 not found. Install pip first: python3 -m ensurepip"
+python3 -m pip --version >/dev/null 2>&1 || fail "pip not found. Install pip first: python3 -m ensurepip"
 
 PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
@@ -33,7 +33,7 @@ ok "Python $PYTHON_VERSION"
 # --- Install ---
 
 info "Installing vaani package..."
-pip3 install vaani || fail "pip install failed"
+python3 -m pip install vaani || fail "pip install failed"
 ok "Package installed"
 
 # --- Fix SSL certs (macOS python.org installs lack root certs) ---
