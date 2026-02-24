@@ -70,10 +70,13 @@ Switch modes from the menu bar dropdown:
 
 | Mode | What it does |
 |------|-------------|
-| **Cleanup** | Fix grammar and remove filler words with minimal rewrites |
+| **Minimal** | Fix grammar and remove filler words with minimal rewrites |
 | **Professional** | Formal rewrite for business communication, emails, and docs |
 | **Casual** | Friendly, conversational tone for chats and informal writing |
-| **Bullets** | Convert your speech into organized bullet points |
+| **Code** | Code-aware formatting, shell commands, and code generation from speech |
+| **Funny** | Witty, humorous rewrite that still delivers your message |
+
+All modes automatically detect list-like speech and format as bullet points.
 
 ---
 
@@ -128,10 +131,11 @@ Override any prompt by creating files in `~/.vaani/prompts/`:
 ├── system.txt          # Override the base system prompt
 ├── context.txt         # Add personal context (your writing style, name, role)
 └── modes/
-    ├── cleanup.txt     # Override the cleanup mode prompt
+    ├── minimal.txt     # Override the minimal mode prompt
     ├── professional.txt
     ├── casual.txt
-    └── bullets.txt
+    ├── code.txt
+    └── funny.txt
 ```
 
 User prompts take priority over built-in defaults. Use `context.txt` to tell Vaani about you — your name, your company, common terms you use — so the output matches your voice.
