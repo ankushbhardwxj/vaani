@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vaani — Voice to polished text, right at your cursor</title>
   <meta name="description" content="Vaani is a macOS menu bar app that transcribes your speech with OpenAI Whisper and polishes it with Claude AI. Hold a hotkey, speak, and polished text appears at your cursor." />
-  <meta name="keywords" content="macOS dictation, AI voice typing, whisper dictation mac, claude ai dictation, voice to text mac, menubar dictation, pip install dictation" />
+  <meta name="keywords" content="macOS dictation, AI voice typing, whisper dictation mac, claude ai dictation, voice to text mac, menubar dictation" />
 
   <!-- Open Graph -->
   <meta property="og:title" content="Vaani — Voice to polished text, right at your cursor" />
@@ -15,22 +15,26 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #0a0a0b;
-      --surface:   #111113;
-      --border:    #1e1e22;
-      --text:      #e8e8ec;
-      --muted:     #6b6b78;
-      --accent:    #7c6af7;
-      --accent-dim:#7c6af720;
-      --green:     #22c55e;
-      --mono:      'JetBrains Mono', monospace;
-      --sans:      'Inter', system-ui, sans-serif;
+      --bg:         #09090b;
+      --surface:    #18181b;
+      --border:     #27272a;
+      --border-hover: #3f3f46;
+      --text:       #fafafa;
+      --text-secondary: #a1a1aa;
+      --muted:      #71717a;
+      --accent:     #fafafa;
+      --accent-muted: rgba(250,250,250,0.06);
+      --green:      #22c55e;
+      --mono:       'Geist Mono', 'JetBrains Mono', monospace;
+      --sans:       'Inter', system-ui, -apple-system, sans-serif;
+      --radius:     8px;
+      --radius-lg:  12px;
     }
 
     html { scroll-behavior: smooth; }
@@ -45,6 +49,14 @@
     }
 
     a { color: inherit; text-decoration: none; }
+    code {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+    }
 
     /* ── NAV ─────────────────────────────────────────────── */
     nav {
@@ -53,49 +65,48 @@
       padding: 0 2rem;
       height: 56px;
       border-bottom: 1px solid var(--border);
-      background: rgba(10,10,11,0.85);
+      background: rgba(9,9,11,0.8);
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
     .nav-logo {
-      font-family: var(--mono);
-      font-weight: 500;
-      font-size: 1rem;
-      letter-spacing: -0.01em;
+      font-weight: 600;
+      font-size: 0.95rem;
+      letter-spacing: -0.02em;
     }
-    .nav-logo span { color: var(--accent); }
     .nav-links { display: flex; gap: 1.5rem; align-items: center; }
     .nav-links a {
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       color: var(--muted);
       transition: color 0.15s;
     }
     .nav-links a:hover { color: var(--text); }
     .nav-links .gh-btn {
-      display: flex; align-items: center; gap: 0.4rem;
+      display: inline-flex; align-items: center; gap: 0.4rem;
       padding: 0.35rem 0.85rem;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: var(--radius);
       font-size: 0.8rem;
-      color: var(--text);
-      transition: border-color 0.15s, background 0.15s;
+      color: var(--text-secondary);
+      transition: border-color 0.15s, color 0.15s;
     }
-    .nav-links .gh-btn:hover { border-color: var(--accent); background: var(--accent-dim); }
+    .nav-links .gh-btn:hover { border-color: var(--border-hover); color: var(--text); }
 
     /* ── HERO ────────────────────────────────────────────── */
     .hero {
-      max-width: 760px;
+      max-width: 720px;
       margin: 0 auto;
-      padding: 6rem 2rem 4rem;
+      padding: 5rem 2rem 3.5rem;
       text-align: center;
     }
     .hero-badge {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      padding: 0.25rem 0.75rem;
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.3rem 0.85rem;
       border: 1px solid var(--border);
       border-radius: 999px;
       font-size: 0.78rem;
       color: var(--muted);
-      margin-bottom: 1.75rem;
+      margin-bottom: 2rem;
     }
     .hero-badge .dot {
       width: 6px; height: 6px;
@@ -108,17 +119,16 @@
       50%       { opacity: 0.3; }
     }
     h1 {
-      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-size: clamp(2rem, 5vw, 3rem);
       font-weight: 700;
-      letter-spacing: -0.03em;
+      letter-spacing: -0.035em;
       line-height: 1.1;
       margin-bottom: 1.25rem;
     }
-    h1 em { font-style: normal; color: var(--accent); }
     .hero-sub {
-      font-size: 1.1rem;
-      color: var(--muted);
-      max-width: 520px;
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      max-width: 500px;
       margin: 0 auto 2.5rem;
       line-height: 1.7;
     }
@@ -129,43 +139,44 @@
       gap: 0.75rem;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: var(--radius);
       padding: 0.75rem 1.25rem;
       font-family: var(--mono);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       margin-bottom: 0.75rem;
       cursor: pointer;
       transition: border-color 0.15s;
       position: relative;
     }
-    .install-block:hover { border-color: var(--accent); }
-    .install-block .prompt { color: var(--accent); user-select: none; }
-    .install-block .cmd { color: var(--text); }
+    .install-block:hover { border-color: var(--border-hover); }
+    .install-block .prompt { color: var(--muted); user-select: none; }
+    .install-block .cmd { color: var(--text); user-select: none; }
+    .install-block .url-ellipsis { color: var(--muted); }
     .install-block .copy-btn {
       margin-left: 0.5rem;
       color: var(--muted);
       font-family: var(--sans);
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       border: 1px solid var(--border);
       border-radius: 4px;
-      padding: 0.1rem 0.4rem;
+      padding: 0.15rem 0.45rem;
       cursor: pointer;
       background: transparent;
       transition: color 0.15s, border-color 0.15s;
     }
-    .install-block .copy-btn:hover { color: var(--text); border-color: var(--accent); }
+    .install-block .copy-btn:hover { color: var(--text); border-color: var(--border-hover); }
     .install-note {
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: var(--muted);
       margin-top: 0.25rem;
     }
-    .install-note a { color: var(--accent); }
-    .install-note a:hover { text-decoration: underline; }
+    .install-note a { color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+    .install-note a:hover { color: var(--text); border-color: var(--text-secondary); }
 
     /* ── STEPS ───────────────────────────────────────────── */
     .steps {
-      max-width: 760px;
-      margin: 3rem auto 0;
+      max-width: 720px;
+      margin: 2.5rem auto 0;
       padding: 0 2rem;
       display: flex;
       gap: 1rem;
@@ -175,7 +186,7 @@
     .step {
       display: flex; align-items: center; gap: 0.5rem;
       font-size: 0.85rem;
-      color: var(--muted);
+      color: var(--text-secondary);
     }
     .step .num {
       width: 22px; height: 22px;
@@ -183,7 +194,7 @@
       border: 1px solid var(--border);
       display: flex; align-items: center; justify-content: center;
       font-size: 0.7rem;
-      color: var(--accent);
+      color: var(--text);
       flex-shrink: 0;
     }
     .step-arrow { color: var(--border); font-size: 1rem; }
@@ -196,10 +207,10 @@
     }
     .section-label {
       font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
+      font-weight: 500;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--accent);
+      color: var(--muted);
       margin-bottom: 0.75rem;
     }
     h2 {
@@ -209,10 +220,11 @@
       margin-bottom: 0.75rem;
     }
     .section-sub {
-      color: var(--muted);
+      color: var(--text-secondary);
       max-width: 500px;
       margin-bottom: 3rem;
       line-height: 1.7;
+      font-size: 0.95rem;
     }
 
     /* ── PIPELINE ────────────────────────────────────────── */
@@ -223,7 +235,7 @@
       flex-wrap: wrap;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       padding: 1.5rem 2rem;
       overflow-x: auto;
     }
@@ -235,9 +247,9 @@
     }
     .pipe-icon {
       width: 40px; height: 40px;
-      border-radius: 8px;
-      background: var(--accent-dim);
-      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      background: var(--accent-muted);
+      border: 1px solid var(--border);
       display: flex; align-items: center; justify-content: center;
       font-size: 1.1rem;
       margin-bottom: 0.5rem;
@@ -255,7 +267,7 @@
     }
     .pipe-arrow {
       font-size: 1.1rem;
-      color: var(--border);
+      color: var(--border-hover);
       margin: 0 0.35rem;
       padding-bottom: 1rem;
       flex-shrink: 0;
@@ -268,7 +280,7 @@
       gap: 1px;
       background: var(--border);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       overflow: hidden;
     }
     .feature-card {
@@ -276,20 +288,20 @@
       padding: 1.5rem;
       transition: background 0.15s;
     }
-    .feature-card:hover { background: #16161a; }
+    .feature-card:hover { background: #1c1c1f; }
     .feature-icon {
-      font-size: 1.4rem;
+      font-size: 1.25rem;
       margin-bottom: 0.75rem;
     }
     .feature-title {
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       font-weight: 600;
-      margin-bottom: 0.4rem;
+      margin-bottom: 0.35rem;
       color: var(--text);
     }
     .feature-desc {
       font-size: 0.82rem;
-      color: var(--muted);
+      color: var(--text-secondary);
       line-height: 1.6;
     }
 
@@ -302,13 +314,12 @@
     .mode-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: var(--radius-lg);
       padding: 1.25rem 1.5rem;
-      transition: border-color 0.15s, background 0.15s;
+      transition: border-color 0.15s;
     }
     .mode-card:hover {
-      border-color: var(--accent);
-      background: var(--accent-dim);
+      border-color: var(--border-hover);
     }
     .mode-name {
       font-size: 0.85rem;
@@ -318,9 +329,48 @@
     }
     .mode-desc {
       font-size: 0.78rem;
-      color: var(--muted);
+      color: var(--text-secondary);
       line-height: 1.55;
     }
+
+    /* ── COMPARE TABLE ───────────────────────────────────── */
+    .compare-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.83rem;
+    }
+    thead th {
+      padding: 0.85rem 1.25rem;
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    thead th:first-child { border-radius: var(--radius-lg) 0 0 0; }
+    thead th:last-child  { border-radius: 0 var(--radius-lg) 0 0; }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child  { border-bottom: none; }
+    tbody tr:hover td { background: #111114; }
+    td {
+      padding: 0.85rem 1.25rem;
+      background: var(--bg);
+      color: var(--text);
+      vertical-align: middle;
+    }
+    td.tool-name { font-weight: 600; }
+    td.tool-name.highlight { color: var(--text); }
+    .check { color: var(--green); }
+    .cross { color: #ef4444; }
+    .partial { color: #f59e0b; }
 
     /* ── PRIVACY ─────────────────────────────────────────── */
     .privacy-grid {
@@ -331,12 +381,12 @@
     .privacy-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: var(--radius-lg);
       padding: 1.25rem;
     }
     .privacy-label {
       font-size: 0.72rem;
-      font-weight: 600;
+      font-weight: 500;
       letter-spacing: 0.05em;
       text-transform: uppercase;
       color: var(--muted);
@@ -350,48 +400,9 @@
     }
     .privacy-note {
       font-size: 0.75rem;
-      color: var(--muted);
+      color: var(--text-secondary);
       line-height: 1.5;
     }
-
-    /* ── COMPARE TABLE ───────────────────────────────────── */
-    .compare-wrap {
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.83rem;
-    }
-    thead th {
-      padding: 0.85rem 1.25rem;
-      text-align: left;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--muted);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-    }
-    thead th:first-child { border-radius: 12px 0 0 0; }
-    thead th:last-child  { border-radius: 0 12px 0 0; }
-    tbody tr { border-bottom: 1px solid var(--border); }
-    tbody tr:last-child  { border-bottom: none; }
-    tbody tr:hover td { background: #111115; }
-    td {
-      padding: 0.85rem 1.25rem;
-      background: var(--bg);
-      color: var(--text);
-      vertical-align: middle;
-    }
-    td.tool-name { font-weight: 600; color: var(--text); }
-    td.tool-name.highlight { color: var(--accent); }
-    .check { color: var(--green); }
-    .cross { color: #ef4444; }
-    .partial { color: #f59e0b; }
 
     /* ── CTA ─────────────────────────────────────────────── */
     .cta-section {
@@ -400,21 +411,21 @@
       border-top: 1px solid var(--border);
     }
     .cta-section h2 { margin-bottom: 0.75rem; }
-    .cta-section p  { color: var(--muted); margin-bottom: 2rem; }
+    .cta-section p  { color: var(--text-secondary); margin-bottom: 2rem; }
     .btn-group { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
     .btn {
       display: inline-flex; align-items: center; gap: 0.4rem;
-      padding: 0.7rem 1.4rem;
-      border-radius: 8px;
-      font-size: 0.875rem;
+      padding: 0.6rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
       font-weight: 500;
       transition: opacity 0.15s, background 0.15s;
       cursor: pointer;
     }
     .btn-primary {
-      background: var(--accent);
-      color: #fff;
-      border: 1px solid var(--accent);
+      background: var(--text);
+      color: var(--bg);
+      border: 1px solid var(--text);
     }
     .btn-primary:hover { opacity: 0.88; }
     .btn-secondary {
@@ -422,7 +433,14 @@
       color: var(--text);
       border: 1px solid var(--border);
     }
-    .btn-secondary:hover { border-color: var(--accent); background: var(--accent-dim); }
+    .btn-secondary:hover { border-color: var(--border-hover); }
+
+    /* ── DIVIDER ─────────────────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
 
     /* ── FOOTER ──────────────────────────────────────────── */
     footer {
@@ -433,26 +451,21 @@
       justify-content: space-between;
       max-width: 900px;
       margin: 0 auto;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: var(--muted);
       flex-wrap: wrap;
       gap: 0.5rem;
     }
-    footer a { color: var(--muted); }
+    footer a { color: var(--muted); transition: color 0.15s; }
     footer a:hover { color: var(--text); }
     footer .footer-links { display: flex; gap: 1.25rem; }
-
-    /* ── DIVIDER ─────────────────────────────────────────── */
-    .divider {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 0;
-    }
 
     @media (max-width: 600px) {
       .steps { flex-direction: column; align-items: flex-start; }
       .step-arrow { display: none; }
       nav { padding: 0 1rem; }
+      .hero { padding: 3.5rem 1.5rem 2.5rem; }
+      .install-block { font-size: 0.75rem; padding: 0.6rem 1rem; }
     }
   </style>
 </head>
@@ -460,9 +473,9 @@
 
 <!-- NAV -->
 <nav>
-  <div class="nav-logo">vaani<span>.</span></div>
+  <div class="nav-logo">vaani</div>
   <div class="nav-links">
-    <a href="#how-it-works">How it works</a>
+    <a href="#features">Features</a>
     <a href="#modes">Modes</a>
     <a href="#privacy">Privacy</a>
     <a href="https://github.com/ankushbhardwxj/vaani" target="_blank" rel="noopener" class="gh-btn">
@@ -476,36 +489,88 @@
 <div class="hero">
   <div class="hero-badge">
     <span class="dot"></span>
-    macOS · OpenAI Whisper · Claude AI
+    macOS menu bar app
   </div>
 
-  <h1>Voice to <em>polished text</em>,<br>right at your cursor.</h1>
+  <h1>Voice to polished text,<br>right at your cursor.</h1>
 
   <p class="hero-sub">
-    Hold a hotkey, speak naturally, release — and ready-to-send text appears wherever your cursor is. No app switching. No copy-pasting. No manual cleanup.
+    Hold a hotkey, speak naturally, release — ready-to-send text appears wherever your cursor is. No app switching. No copy-pasting.
   </p>
 
   <div class="install-block" onclick="copyInstall()">
     <span class="prompt">$</span>
-    <span class="cmd">pip install vaani &amp;&amp; vaani start</span>
+    <span class="cmd">curl -sSL <span class="url-ellipsis">&hellip;</span>/install.sh | sh</span>
     <button class="copy-btn" id="copy-btn">copy</button>
   </div>
   <p class="install-note">
-    Requires Python 3.10+ · macOS 12+ ·
-    <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI</a> and
+    Requires Python 3.10+ &middot; macOS 12+ &middot;
+    <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI</a> &amp;
     <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic</a> API keys
   </p>
 </div>
 
 <div class="steps">
-  <div class="step"><span class="num">1</span> Hold <code style="background:#1a1a1f;padding:0.1rem 0.35rem;border-radius:4px;font-size:0.8rem;font-family:var(--mono)">Alt</code> and speak</div>
-  <span class="step-arrow">→</span>
+  <div class="step"><span class="num">1</span> Hold <code>Alt</code> and speak</div>
+  <span class="step-arrow">&rarr;</span>
   <div class="step"><span class="num">2</span> Release to process</div>
-  <span class="step-arrow">→</span>
-  <div class="step"><span class="num">3</span> Polished text appears at cursor</div>
+  <span class="step-arrow">&rarr;</span>
+  <div class="step"><span class="num">3</span> Polished text at cursor</div>
 </div>
 
 <hr class="divider" style="margin-top:5rem;" />
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-label">Features</div>
+  <h2>Built for people who write a lot</h2>
+  <p class="section-sub">Best-in-class transcription meets best-in-class enhancement — under your own API keys.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">&#9000;</div>
+      <div class="feature-title">Works everywhere</div>
+      <div class="feature-desc">Terminal, IDE, browser, Slack, email, Notion — anywhere there's a text cursor.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#8227;</div>
+      <div class="feature-title">Your API keys</div>
+      <div class="feature-desc">No middleman servers. API calls go directly from your machine to OpenAI and Anthropic.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#9656;</div>
+      <div class="feature-title">One-line install</div>
+      <div class="feature-desc">Install with a single curl command. Updates with pip. Fits in your dotfiles.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#8776;</div>
+      <div class="feature-title">Neural VAD</div>
+      <div class="feature-desc">Silero VAD trims silence with a neural network. Works on whispers and noisy environments.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#9998;</div>
+      <div class="feature-title">Custom prompts</div>
+      <div class="feature-desc">Override any mode with your own prompt files. Add <code>context.txt</code> with your name and writing style.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#8634;</div>
+      <div class="feature-title">Hot-reload config</div>
+      <div class="feature-desc"><code>~/.vaani/config.yaml</code> is watched for changes. Edit and save — no restart needed.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#8477;</div>
+      <div class="feature-title">Encrypted history</div>
+      <div class="feature-desc">Transcription history stored in a local SQLite database with AES-256 encryption.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#8901;</div>
+      <div class="feature-title">Keychain storage</div>
+      <div class="feature-desc">API keys stored in macOS Keychain — never written to disk in plaintext.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
 
 <!-- HOW IT WORKS -->
 <section id="how-it-works">
@@ -515,91 +580,39 @@
 
   <div class="pipeline">
     <div class="pipe-step">
-      <div class="pipe-icon">🎙</div>
+      <div class="pipe-icon">&#127908;</div>
       <div class="pipe-label">Mic capture</div>
       <div class="pipe-tech">sounddevice</div>
     </div>
-    <span class="pipe-arrow">→</span>
+    <span class="pipe-arrow">&rarr;</span>
     <div class="pipe-step">
-      <div class="pipe-icon">🔇</div>
+      <div class="pipe-icon">&#9116;</div>
       <div class="pipe-label">VAD trim</div>
       <div class="pipe-tech">Silero VAD</div>
     </div>
-    <span class="pipe-arrow">→</span>
+    <span class="pipe-arrow">&rarr;</span>
     <div class="pipe-step">
-      <div class="pipe-icon">📈</div>
+      <div class="pipe-icon">&#9652;</div>
       <div class="pipe-label">Gain norm</div>
       <div class="pipe-tech">RMS-based</div>
     </div>
-    <span class="pipe-arrow">→</span>
+    <span class="pipe-arrow">&rarr;</span>
     <div class="pipe-step">
-      <div class="pipe-icon">📝</div>
+      <div class="pipe-icon">&#9998;</div>
       <div class="pipe-label">Transcribe</div>
       <div class="pipe-tech">Whisper API</div>
     </div>
-    <span class="pipe-arrow">→</span>
+    <span class="pipe-arrow">&rarr;</span>
     <div class="pipe-step">
-      <div class="pipe-icon">✨</div>
+      <div class="pipe-icon">&#10024;</div>
       <div class="pipe-label">Enhance</div>
       <div class="pipe-tech">Claude Haiku</div>
     </div>
-    <span class="pipe-arrow">→</span>
+    <span class="pipe-arrow">&rarr;</span>
     <div class="pipe-step">
-      <div class="pipe-icon">⌨️</div>
+      <div class="pipe-icon">&#9205;</div>
       <div class="pipe-label">Paste</div>
       <div class="pipe-tech">pynput</div>
-    </div>
-  </div>
-</section>
-
-<hr class="divider" />
-
-<!-- FEATURES -->
-<section>
-  <div class="section-label">What makes it different</div>
-  <h2>Built for developers who write a lot</h2>
-  <p class="section-sub">The only pip-installable dictation tool that combines best-in-class transcription with best-in-class enhancement — under your own API keys.</p>
-
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-icon">⌨️</div>
-      <div class="feature-title">Works everywhere</div>
-      <div class="feature-desc">Terminal, IDE, browser, Slack, email, Notion — anywhere there's a text cursor. No app focus required.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🔑</div>
-      <div class="feature-title">BYOK — your API keys</div>
-      <div class="feature-desc">No Vaani servers, no middleman markup. API calls go directly from your machine to OpenAI and Anthropic.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">📦</div>
-      <div class="feature-title">pip install vaani</div>
-      <div class="feature-desc">The only dictation tool that fits in your dotfiles. Version-control it, install it on remote Macs, update with pip.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🧠</div>
-      <div class="feature-title">Neural VAD</div>
-      <div class="feature-desc">Silero VAD trims silence with a neural network — not energy thresholds. Works on whispers and noisy environments.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">📝</div>
-      <div class="feature-title">Custom prompts</div>
-      <div class="feature-desc">Override any mode with your own prompt files. Add a <code style="font-family:var(--mono);font-size:0.75rem">context.txt</code> with your name, role, and common terms.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">⚡</div>
-      <div class="feature-title">Hot-reload config</div>
-      <div class="feature-desc"><code style="font-family:var(--mono);font-size:0.75rem">~/.vaani/config.yaml</code> is watched for changes. Edit and save — no restart needed.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🔒</div>
-      <div class="feature-title">Encrypted history</div>
-      <div class="feature-desc">Transcription history is stored in a local SQLite database with AES-256 encryption. Nothing leaves your machine.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🔑</div>
-      <div class="feature-title">Keychain storage</div>
-      <div class="feature-desc">API keys are stored in macOS Keychain — never written to disk in plaintext.</div>
     </div>
   </div>
 </section>
@@ -610,62 +623,34 @@
 <section id="modes">
   <div class="section-label">Enhancement modes</div>
   <h2>Match your tone to the context</h2>
-  <p class="section-sub">Switch modes from the menu bar. Each mode sends a different prompt to Claude.</p>
+  <p class="section-sub">Switch modes from the menu bar. Each mode sends a different system prompt to Claude.</p>
 
   <div class="modes-grid">
     <div class="mode-card">
-      <div class="mode-name">Cleanup</div>
-      <div class="mode-desc">Fix grammar, remove filler words with minimal rewrites. Preserves your original meaning.</div>
+      <div class="mode-name">Minimal</div>
+      <div class="mode-desc">Least changes possible. Fix grammar, remove filler words, preserve your original wording.</div>
     </div>
     <div class="mode-card">
       <div class="mode-name">Professional</div>
-      <div class="mode-desc">Formal rewrite for business emails, docs, and async communication.</div>
+      <div class="mode-desc">Formal rewrite for business emails, reports, and async communication. No contractions.</div>
     </div>
     <div class="mode-card">
       <div class="mode-name">Casual</div>
       <div class="mode-desc">Friendly, conversational tone. For Slack, DMs, and informal writing.</div>
     </div>
     <div class="mode-card">
-      <div class="mode-name">Bullets</div>
-      <div class="mode-desc">Converts your spoken thoughts into clean, organized bullet points.</div>
+      <div class="mode-name">Code</div>
+      <div class="mode-desc">Code-aware formatting, shell command recognition, and code generation from speech.</div>
+    </div>
+    <div class="mode-card">
+      <div class="mode-name">Funny</div>
+      <div class="mode-desc">Witty, humorous rewrite that still delivers your core message.</div>
     </div>
   </div>
 
-  <p style="margin-top:1.5rem;font-size:0.83rem;color:var(--muted);">
-    Override any mode with your own prompt file in <code style="font-family:var(--mono);">~/.vaani/prompts/modes/</code>
+  <p style="margin-top:1.5rem;font-size:0.82rem;color:var(--muted);">
+    Override any mode with your own prompt file in <code>~/.vaani/prompts/modes/</code>
   </p>
-</section>
-
-<hr class="divider" />
-
-<!-- PRIVACY -->
-<section id="privacy">
-  <div class="section-label">Privacy</div>
-  <h2>No Vaani servers. Ever.</h2>
-  <p class="section-sub">All cloud calls go directly from your machine to OpenAI and Anthropic under your own account. There is no Vaani backend.</p>
-
-  <div class="privacy-grid">
-    <div class="privacy-card">
-      <div class="privacy-label">Audio</div>
-      <div class="privacy-value">Sent to OpenAI</div>
-      <div class="privacy-note">Under your API key. Subject to OpenAI's data retention policy.</div>
-    </div>
-    <div class="privacy-card">
-      <div class="privacy-label">Transcribed text</div>
-      <div class="privacy-value">Sent to Anthropic</div>
-      <div class="privacy-note">Under your API key. Subject to Anthropic's data retention policy.</div>
-    </div>
-    <div class="privacy-card">
-      <div class="privacy-label">API keys</div>
-      <div class="privacy-value">macOS Keychain only</div>
-      <div class="privacy-note">Never written to disk in plaintext. Stored using the system credential store.</div>
-    </div>
-    <div class="privacy-card">
-      <div class="privacy-label">Transcription history</div>
-      <div class="privacy-value">Local SQLite database</div>
-      <div class="privacy-note">Stored on your machine. AES-256 encrypted with Fernet.</div>
-    </div>
-  </div>
 </section>
 
 <hr class="divider" />
@@ -684,7 +669,6 @@
           <th>Price</th>
           <th>AI Enhancement</th>
           <th>Custom Prompts</th>
-          <th>pip install</th>
           <th>Your API keys</th>
         </tr>
       </thead>
@@ -692,96 +676,71 @@
         <tr>
           <td class="tool-name highlight">Vaani</td>
           <td>~$0.50/mo API costs</td>
-          <td><span class="check">✓</span> 4 modes + custom</td>
-          <td><span class="check">✓</span> File-based</td>
-          <td><span class="check">✓</span></td>
-          <td><span class="check">✓</span></td>
+          <td><span class="check">&#10003;</span> 5 modes + custom</td>
+          <td><span class="check">&#10003;</span> File-based</td>
+          <td><span class="check">&#10003;</span></td>
         </tr>
         <tr>
           <td class="tool-name">Wispr Flow</td>
           <td>$15/mo</td>
-          <td><span class="check">✓</span> Context-adaptive</td>
-          <td><span class="cross">✗</span></td>
-          <td><span class="cross">✗</span></td>
-          <td><span class="cross">✗</span></td>
+          <td><span class="check">&#10003;</span> Context-adaptive</td>
+          <td><span class="cross">&#10007;</span></td>
+          <td><span class="cross">&#10007;</span></td>
         </tr>
         <tr>
           <td class="tool-name">SuperWhisper</td>
-          <td>$8.49/mo or $249 lifetime</td>
-          <td><span class="check">✓</span> Multi-model</td>
-          <td><span class="check">✓</span> GUI-based</td>
-          <td><span class="cross">✗</span></td>
+          <td>$8.49/mo or $249</td>
+          <td><span class="check">&#10003;</span> Multi-model</td>
+          <td><span class="check">&#10003;</span> GUI-based</td>
           <td><span class="partial">~</span> Optional</td>
         </tr>
         <tr>
           <td class="tool-name">Whisper Dictation</td>
           <td>Free</td>
-          <td><span class="cross">✗</span> None</td>
-          <td><span class="cross">✗</span></td>
-          <td><span class="cross">✗</span></td>
-          <td><span class="check">✓</span> Local only</td>
+          <td><span class="cross">&#10007;</span></td>
+          <td><span class="cross">&#10007;</span></td>
+          <td><span class="check">&#10003;</span> Local only</td>
         </tr>
         <tr>
           <td class="tool-name">macOS Dictation</td>
           <td>Free</td>
-          <td><span class="cross">✗</span> None</td>
-          <td><span class="cross">✗</span></td>
-          <td><span class="cross">✗</span></td>
-          <td>—</td>
+          <td><span class="cross">&#10007;</span></td>
+          <td><span class="cross">&#10007;</span></td>
+          <td>&mdash;</td>
         </tr>
       </tbody>
     </table>
   </div>
 </section>
 
-<!-- INSTALL -->
-<section id="install" style="border-top:1px solid var(--border);">
-  <div class="section-label">Get started</div>
-  <h2>Two ways to install</h2>
-  <p class="section-sub">Both paths end at the same place: polished text at your cursor.</p>
+<hr class="divider" />
 
-  <div class="features-grid" style="grid-template-columns:1fr 1fr;">
-    <!-- pip -->
-    <div class="feature-card" style="padding:2rem;">
-      <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1rem;">
-        <div style="background:var(--accent-dim);border:1px solid var(--accent);border-radius:6px;padding:0.3rem 0.6rem;font-size:0.75rem;font-weight:600;color:var(--accent);">Recommended</div>
-        <span style="font-size:0.9rem;font-weight:600;">pip install</span>
-      </div>
-      <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">For developers. Fits in your dotfiles, installs in one command, updates with pip.</p>
-      <div style="display:flex;flex-direction:column;gap:0.5rem;">
-        <div class="install-block" style="display:block;cursor:default;">
-          <span style="color:var(--accent);font-family:var(--mono);">$</span>
-          <span style="font-family:var(--mono);font-size:0.82rem;"> pip install vaani</span>
-        </div>
-        <div class="install-block" style="display:block;cursor:default;">
-          <span style="color:var(--accent);font-family:var(--mono);">$</span>
-          <span style="font-family:var(--mono);font-size:0.82rem;"> python -m spacy download en_core_web_sm</span>
-        </div>
-        <div class="install-block" style="display:block;cursor:default;">
-          <span style="color:var(--accent);font-family:var(--mono);">$</span>
-          <span style="font-family:var(--mono);font-size:0.82rem;"> vaani start</span>
-        </div>
-      </div>
-      <p style="margin-top:1rem;font-size:0.75rem;color:var(--muted);">Onboarding runs automatically on first launch — enter your API keys and grant permissions. Requires <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--accent);">OpenAI</a> and <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent);">Anthropic</a> API keys.</p>
+<!-- PRIVACY -->
+<section id="privacy">
+  <div class="section-label">Privacy</div>
+  <h2>No Vaani servers. Ever.</h2>
+  <p class="section-sub">All cloud calls go directly from your machine to OpenAI and Anthropic under your own account.</p>
+
+  <div class="privacy-grid">
+    <div class="privacy-card">
+      <div class="privacy-label">Audio</div>
+      <div class="privacy-value">Sent to OpenAI</div>
+      <div class="privacy-note">Under your API key. Subject to OpenAI's data retention policy.</div>
     </div>
-
-    <!-- app download -->
-    <div class="feature-card" style="padding:2rem;">
-      <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1rem;">
-        <div style="background:#1a1a1f;border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.6rem;font-size:0.75rem;font-weight:600;color:var(--muted);">App bundle</div>
-        <span style="font-size:0.9rem;font-weight:600;">Download .dmg</span>
-      </div>
-      <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">Standalone macOS app. Drag to Applications, then remove the quarantine flag.</p>
-      <a href="https://github.com/ankushbhardwxj/vaani/releases/latest" target="_blank" rel="noopener" class="btn btn-secondary" style="display:inline-flex;margin-bottom:1.25rem;">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="flex-shrink:0;"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.97a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.779a.749.749 0 1 1 1.06-1.06z"/></svg>
-        Download for macOS
-      </a>
-      <p style="font-size:0.78rem;color:var(--muted);line-height:1.6;margin-bottom:0.5rem;">After dragging to Applications, run once in Terminal:</p>
-      <div class="install-block" style="display:block;cursor:default;font-size:0.78rem;">
-        <span style="color:var(--accent);font-family:var(--mono);">$</span>
-        <span style="font-family:var(--mono);"> xattr -rd com.apple.quarantine /Applications/Vaani.app</span>
-      </div>
-      <p style="margin-top:0.6rem;font-size:0.72rem;color:var(--muted);">Required because Vaani isn't yet notarized with Apple. One-time only.</p>
+    <div class="privacy-card">
+      <div class="privacy-label">Transcribed text</div>
+      <div class="privacy-value">Sent to Anthropic</div>
+      <div class="privacy-note">Under your API key. Subject to Anthropic's data retention policy.</div>
+    </div>
+    <div class="privacy-card">
+      <div class="privacy-label">API keys</div>
+      <div class="privacy-value">macOS Keychain only</div>
+      <div class="privacy-note">Never written to disk in plaintext. Stored in the system credential store.</div>
+    </div>
+    <div class="privacy-card">
+      <div class="privacy-label">History</div>
+      <div class="privacy-value">Local SQLite + AES-256</div>
+      <div class="privacy-note">Stored on your machine. Encrypted with Fernet. Nothing leaves your disk.</div>
     </div>
   </div>
 </section>
@@ -791,19 +750,18 @@
   <h2>No subscription. No servers. Just your voice.</h2>
   <p>API costs run ~$0.50/month at typical usage. You own your keys.</p>
   <div class="btn-group">
-    <a href="https://github.com/ankushbhardwxj/vaani" target="_blank" rel="noopener" class="btn btn-primary">
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-      View on GitHub
+    <a href="#" onclick="copyInstall(); return false;" class="btn btn-primary">
+      Copy install command
     </a>
-    <a href="https://github.com/ankushbhardwxj/vaani/releases/latest" target="_blank" rel="noopener" class="btn btn-secondary">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.97a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.779a.749.749 0 1 1 1.06-1.06z"/></svg>
-      Download .dmg
+    <a href="https://github.com/ankushbhardwxj/vaani" target="_blank" rel="noopener" class="btn btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      View on GitHub
     </a>
   </div>
 </div>
 
 <footer>
-  <span>Vaani — MIT License</span>
+  <span>Vaani &mdash; MIT License</span>
   <div class="footer-links">
     <a href="https://github.com/ankushbhardwxj/vaani" target="_blank" rel="noopener">GitHub</a>
     <a href="https://github.com/ankushbhardwxj/vaani/issues" target="_blank" rel="noopener">Issues</a>
@@ -813,11 +771,13 @@
 
 <script>
   function copyInstall() {
-    const text = 'pip install vaani && vaani start';
+    const text = 'curl -sSL https://raw.githubusercontent.com/ankushbhardwxj/vaani/main/install.sh | sh';
     navigator.clipboard.writeText(text).then(() => {
       const btn = document.getElementById('copy-btn');
-      btn.textContent = 'copied!';
-      setTimeout(() => btn.textContent = 'copy', 2000);
+      if (btn) {
+        btn.textContent = 'copied!';
+        setTimeout(() => btn.textContent = 'copy', 2000);
+      }
     });
   }
 </script>
