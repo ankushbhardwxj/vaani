@@ -19,30 +19,30 @@ def store(tmp_vaani_dir, fernet_key, mock_keyring):
 
 class TestHistoryStore:
     def test_add_and_retrieve(self, store):
-        store.add("hello raw", "hello enhanced", "cleanup", audio_length_secs=2.5)
+        store.add("hello raw", "hello enhanced", "minimal", audio_length_secs=2.5)
         records = store.get_recent(limit=10)
         assert len(records) == 1
         assert records[0]["raw"] == "hello raw"
         assert records[0]["enhanced"] == "hello enhanced"
-        assert records[0]["mode"] == "cleanup"
+        assert records[0]["mode"] == "minimal"
         assert records[0]["audio_length_secs"] == 2.5
 
     def test_ordering_newest_first(self, store):
-        store.add("first", "first_e", "cleanup")
-        store.add("second", "second_e", "cleanup")
+        store.add("first", "first_e", "minimal")
+        store.add("second", "second_e", "minimal")
         records = store.get_recent(limit=10)
         assert records[0]["raw"] == "second"
         assert records[1]["raw"] == "first"
 
     def test_limit(self, store):
         for i in range(5):
-            store.add(f"raw{i}", f"enh{i}", "cleanup")
+            store.add(f"raw{i}", f"enh{i}", "minimal")
         records = store.get_recent(limit=3)
         assert len(records) == 3
 
     def test_encryption_is_real(self, store):
         """Raw DB column should NOT contain plaintext."""
-        store.add("secret message", "enhanced secret", "cleanup")
+        store.add("secret message", "enhanced secret", "minimal")
         store._ensure_initialized()
         row = store._conn.execute(
             "SELECT raw_encrypted FROM history LIMIT 1"
@@ -56,7 +56,7 @@ class TestHistoryStore:
         db_path = tmp_vaani_dir / "history_wrong.db"
 
         s1 = HistoryStore(db_path=db_path)
-        s1.add("secret", "enhanced", "cleanup")
+        s1.add("secret", "enhanced", "minimal")
         s1.close()
 
         # Re-open with a different key

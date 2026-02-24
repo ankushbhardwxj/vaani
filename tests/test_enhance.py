@@ -12,10 +12,10 @@ import pytest
 
 class TestPromptAssembly:
     def test_loads_project_prompt(self, tmp_vaani_dir, monkeypatch):
-        from vaani.enhance import _load_prompt_file, _PROJECT_PROMPTS
+        from vaani.enhance import _load_prompt_file, _BUNDLED_PROMPTS
 
         # Write a project prompt
-        project_dir = Path(_PROJECT_PROMPTS)
+        project_dir = Path(_BUNDLED_PROMPTS)
         project_dir.mkdir(parents=True, exist_ok=True)
         (project_dir / "test_prompt.txt").write_text("project prompt content")
 
@@ -23,10 +23,10 @@ class TestPromptAssembly:
         assert result == "project prompt content"
 
     def test_user_override_wins(self, tmp_vaani_dir):
-        from vaani.enhance import _load_prompt_file, _PROJECT_PROMPTS
+        from vaani.enhance import _load_prompt_file, _BUNDLED_PROMPTS
 
         # Write both project and user prompts
-        project_dir = Path(_PROJECT_PROMPTS)
+        project_dir = Path(_BUNDLED_PROMPTS)
         project_dir.mkdir(parents=True, exist_ok=True)
         (project_dir / "override.txt").write_text("project version")
 
@@ -42,23 +42,23 @@ class TestPromptAssembly:
 
         # Point project prompts to nonexistent dir
         monkeypatch.setattr(
-            "vaani.enhance._PROJECT_PROMPTS", tmp_vaani_dir / "nonexistent"
+            "vaani.enhance._BUNDLED_PROMPTS", tmp_vaani_dir / "nonexistent"
         )
-        result = _build_system_prompt("cleanup")
+        result = _build_system_prompt("minimal")
         assert "enhance" in result.lower() or "transcription" in result.lower()
 
     def test_mode_prompt_included(self, tmp_vaani_dir, monkeypatch):
         from vaani.enhance import _build_system_prompt
 
         monkeypatch.setattr(
-            "vaani.enhance._PROJECT_PROMPTS", tmp_vaani_dir / "prompts"
+            "vaani.enhance._BUNDLED_PROMPTS", tmp_vaani_dir / "prompts"
         )
         modes_dir = tmp_vaani_dir / "prompts" / "modes"
         modes_dir.mkdir(parents=True, exist_ok=True)
-        (modes_dir / "bullets.txt").write_text("Format as bullet points")
+        (modes_dir / "code.txt").write_text("Format for code context")
 
-        result = _build_system_prompt("bullets")
-        assert "bullet points" in result.lower()
+        result = _build_system_prompt("code")
+        assert "code context" in result.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -93,5 +93,5 @@ class TestEnhance:
         mock_client.messages.stream.return_value = mock_stream
         mock_anthropic_cls.return_value = mock_client
 
-        result = enhance("hello world", mode="cleanup")
+        result = enhance("hello world", mode="minimal")
         assert result == "Hello, world!"

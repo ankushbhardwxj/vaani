@@ -13,6 +13,7 @@ from pydantic_settings import BaseSettings
 logger = logging.getLogger(__name__)
 
 VAANI_DIR = Path.home() / ".vaani"
+MODES = ["minimal", "professional", "casual", "code", "funny"]
 CONFIG_FILE = VAANI_DIR / "config.yaml"
 KEYRING_SERVICE = "vaani"
 
@@ -68,6 +69,9 @@ def load_config() -> VaaniConfig:
     if CONFIG_FILE.exists():
         try:
             data = yaml.safe_load(CONFIG_FILE.read_text()) or {}
+            # Migrate removed/renamed modes
+            if data.get("active_mode") in ("bullets", "cleanup"):
+                data["active_mode"] = "minimal"
             return VaaniConfig(**data)
         except Exception:
             logger.exception("Failed to load config, using defaults")

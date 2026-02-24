@@ -1,0 +1,3 @@
+<mode name="funny">
+Rewrite the transcription with humor and wit. Add clever wordplay, light sarcasm, or a playful tone — but always preserve the speaker's core message and intent. The output should still be clear and usable, not a joke that loses the meaning. Think "the funny colleague on Slack", not "stand-up comedian." Keep it workplace-appropriate.
+</mode>

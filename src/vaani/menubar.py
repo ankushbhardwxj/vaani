@@ -9,6 +9,7 @@ from typing import Callable, Optional
 
 import rumps
 
+from vaani.config import MODES, load_config, save_config
 from vaani.state import AppState
 
 
@@ -54,6 +55,15 @@ class VaaniMenuBar(rumps.App):
 
         self.menu.add(rumps.separator)
 
+        self._mode_menu = rumps.MenuItem("Mode")
+        for mode in MODES:
+            item = rumps.MenuItem(mode.capitalize(), callback=self._on_mode_select)
+            self._mode_menu.add(item)
+        self._refresh_mode_menu()
+        self.menu.add(self._mode_menu)
+
+        self.menu.add(rumps.separator)
+
         self.menu.add(rumps.MenuItem("Preferences", callback=self._open_preferences))
 
         self.menu.add(rumps.separator)
@@ -65,6 +75,22 @@ class VaaniMenuBar(rumps.App):
             threading.Thread(
                 target=self._on_toggle_recording, daemon=True
             ).start()
+
+    def _refresh_mode_menu(self) -> None:
+        """Sync mode submenu checkmarks with current config."""
+        cfg = load_config()
+        active = cfg.active_mode
+        for item in self._mode_menu.values():
+            item.state = item.title.lower() == active
+
+    def _on_mode_select(self, sender) -> None:
+        """Handle mode selection from submenu."""
+        cfg = load_config()
+        cfg.active_mode = sender.title.lower()
+        save_config(cfg)
+        for item in self._mode_menu.values():
+            item.state = False
+        sender.state = True
 
     def _open_preferences(self, sender) -> None:
         """Open settings window in-process (native NSWindow, instant)."""

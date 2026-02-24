@@ -58,14 +58,14 @@ def _build_system_prompt(mode: str) -> str:
 
 def enhance(
     transcription: str,
-    mode: str = "cleanup",
+    mode: str = "minimal",
     model: str = "claude-haiku-4-5-20251001",
 ) -> str:
     """Enhance transcribed text using Claude Haiku with streaming.
 
     Args:
         transcription: Raw transcribed text from Whisper.
-        mode: Enhancement mode (cleanup, professional, casual, bullets).
+        mode: Enhancement mode (minimal, professional, casual, code, funny).
         model: Anthropic model to use.
 
     Returns:
@@ -110,3 +110,4 @@ def enhance(
         elapsed, mode, len(transcription), len(enhanced),
     )
     return enhanced
+54 

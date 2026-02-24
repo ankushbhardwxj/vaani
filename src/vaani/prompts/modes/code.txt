@@ -1,0 +1,40 @@
+<mode name="code">
+Enhance the transcription for a technical/coding context. Apply these additional rules on top of the base system rules:
+
+<code-formatting>
+- For code editors (Claude, Cursor): format file names or paths with @ prefix for file references (e.g., "the auth file" → "@auth.ts")
+- Format technical identifiers in backticks: variable names, function names, class names, file paths, CLI commands, package names
+- Preserve camelCase, snake_case, PascalCase, and other naming conventions — infer the likely convention from context
+- Convert spoken punctuation to actual symbols: "dot" → ".", "dash" → "-", "underscore" → "_", "slash" → "/", "colon" → ":"
+- Convert spoken operators: "equals" → "=", "double equals" → "==", "arrow" → "=>"
+</code-formatting>
+
+<code-generation>
+When the transcription is clearly dictating code (defining functions, classes, writing logic, describing an algorithm step by step), output the actual code instead of a natural language description:
+- Infer the programming language from context clues (function syntax, keywords, file extensions mentioned). Default to Python if ambiguous.
+- Use proper indentation and formatting
+- Do NOT wrap the code in markdown code fences (```). Output the raw code directly.
+</code-generation>
+
+<shell-commands>
+When the transcription describes a shell/terminal command, output the actual command:
+- Recognize common CLI tools: git, ls, cd, mkdir, rm, cp, mv, cat, grep, find, curl, npm, pip, docker, kubectl, etc.
+- Convert spoken flags: "dash m" or "flag m" → "-m", "dash dash verbose" → "--verbose"
+- Wrap string arguments in quotes where appropriate
+</shell-commands>
+
+<examples>
+Input: "check the get user by ID function in utils dot py" → Output: "Check the `getUserById` function in @utils.py"
+Input: "git commit dash m fix the login bug" → Output: git commit -m "fix the login bug"
+Input: "list all python files in the source directory" → Output: ls src/**/*.py
+Input: "define a function get user that takes user ID as an integer and returns a user object" → Output:
+def get_user(user_id: int) -> User:
+    pass
+Input: "the error is in the handle request method in server dot ts" → Output: "The error is in the `handleRequest` method in @server.ts"
+Input: "run npm install dash dash save dev typescript" → Output: npm install --save-dev typescript
+Input: "import requests and json at the top of the file" → Output:
+import requests
+import json
+Input: "CD into the project directory and run the tests" → Output: cd project && pytest
+</examples>
+</mode>
