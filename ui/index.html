@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vaani</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="loading-screen" id="loading">
+    <div class="spinner"></div>
+    <small>Loading...</small>
+  </div>
+
+  <script type="module">
+    import { api } from './js/api.js';
+
+    async function route() {
+      try {
+        const config = await api.getConfig();
+        if (!config.onboarding_completed) {
+          window.location.href = 'onboarding.html';
+        } else {
+          window.location.href = 'settings.html';
+        }
+      } catch (err) {
+        // If backend isn't ready yet, fall back to settings
+        console.error('Router error:', err);
+        window.location.href = 'settings.html';
+      }
+    }
+
+    route();
+  </script>
+</body>
+</html>

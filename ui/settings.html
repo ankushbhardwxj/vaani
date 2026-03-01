@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vaani Settings</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Toast container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Tab bar -->
+    <nav class="tab-bar">
+      <button class="tab-btn active" data-tab="general">General</button>
+      <button class="tab-btn" data-tab="microphone">Microphone</button>
+      <button class="tab-btn" data-tab="apikeys">API Keys</button>
+      <button class="tab-btn" data-tab="about">About</button>
+    </nav>
+
+    <!-- Tab 1: General -->
+    <section id="tab-general" class="tab-content active">
+      <div class="section">
+        <p class="section-title">Enhancement Mode</p>
+        <div class="mode-selector" id="mode-selector">
+          <button class="mode-btn" data-mode="minimal">Minimal</button>
+          <button class="mode-btn" data-mode="professional">Professional</button>
+          <button class="mode-btn" data-mode="casual">Casual</button>
+          <button class="mode-btn" data-mode="code">Code</button>
+          <button class="mode-btn" data-mode="funny">Funny</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <p class="section-title">Hotkey</p>
+        <div class="field-row">
+          <input type="text" id="hotkey-display" readonly placeholder="Not set">
+          <button class="btn-secondary btn-sm" id="hotkey-change-btn">Change</button>
+        </div>
+        <small id="hotkey-hint" class="hidden">Press your desired key combination...</small>
+      </div>
+
+      <div class="section mt-lg text-center">
+        <small id="version-label" class="text-xs">Vaani</small>
+      </div>
+    </section>
+
+    <!-- Tab 2: Microphone -->
+    <section id="tab-microphone" class="tab-content">
+      <div class="section">
+        <p class="section-title">Input Device</p>
+        <div class="field-row">
+          <select id="mic-select">
+            <option value="">Loading...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section">
+        <p class="section-title">Mic Test</p>
+        <div class="flex gap-sm mb-sm">
+          <button class="btn-primary btn-sm" id="mic-test-btn">Test Microphone</button>
+          <button class="btn-secondary btn-sm hidden" id="mic-stop-btn">Stop Test</button>
+        </div>
+        <div class="level-meter" id="level-meter">
+          <div class="level-meter__fill" id="level-fill"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 3: API Keys -->
+    <section id="tab-apikeys" class="tab-content">
+      <div class="card mb-md">
+        <div class="flex items-center gap-sm mb-sm">
+          <span class="status-dot" id="openai-status"></span>
+          <h3>OpenAI API Key</h3>
+        </div>
+        <div class="field-row">
+          <input type="password" id="openai-key" placeholder="sk-...">
+          <button class="btn-primary btn-sm" id="openai-save-btn">Save</button>
+        </div>
+      </div>
+
+      <div class="card mb-md">
+        <div class="flex items-center gap-sm mb-sm">
+          <span class="status-dot" id="anthropic-status"></span>
+          <h3>Anthropic API Key</h3>
+        </div>
+        <div class="field-row">
+          <input type="password" id="anthropic-key" placeholder="sk-ant-...">
+          <button class="btn-primary btn-sm" id="anthropic-save-btn">Save</button>
+        </div>
+      </div>
+
+      <small>Keys are stored securely in your system keychain.</small>
+    </section>
+
+    <!-- Tab 4: About -->
+    <section id="tab-about" class="tab-content">
+      <div class="text-center mt-lg">
+        <h1 id="about-name">Vaani</h1>
+        <p id="about-version">Version loading...</p>
+      </div>
+
+      <div class="flex flex-col gap-sm mt-lg">
+        <button class="btn-secondary w-full" id="open-config-btn">Open Config Folder</button>
+        <button class="btn-secondary w-full" id="open-log-btn">Open Log File</button>
+      </div>
+
+      <p class="text-center mt-lg text-sm">Vaani &mdash; Voice to polished text</p>
+    </section>
+  </div>
+
+  <script type="module" src="js/settings.js"></script>
+</body>
+</html>

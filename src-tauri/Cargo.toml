@@ -1,0 +1,47 @@
+[package]
+name = "vaani"
+version = "0.1.0"
+description = "Voice to polished text, right at your cursor"
+authors = ["Ankush Bhardwaj"]
+license = "MIT"
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "vaani_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "fs"] }
+cpal = "0.15"
+reqwest = { version = "0.12", features = ["multipart", "json", "stream"] }
+hound = "3.5"
+arboard = "3"
+enigo = "0.2"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+rdev = "0.5"
+dirs = "5"
+ort = "2.0.0-rc.11"
+ndarray = "0.17"
+rodio = "0.19"
+rusqlite = { version = "0.32", features = ["bundled"] }
+security-framework = "3"
+aes-gcm = "0.10"
+rand = "0.8"
+base64 = "0.22"
+
+[dev-dependencies]
+tempfile = "3"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

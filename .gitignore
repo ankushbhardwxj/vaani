@@ -12,6 +12,9 @@ venv/
 build/
 dist/
 
+# Rust / Tauri
+src-tauri/target/
+
 
 # macOS
 .DS_Store

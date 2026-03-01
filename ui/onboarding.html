@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Vaani</title>
+  <link rel="stylesheet" href="css/onboarding.css">
+</head>
+<body>
+  <!-- Progress indicator -->
+  <div class="onboarding-progress">
+    <span class="progress-label">Step <span id="step-number">1</span> of 6</span>
+    <div class="progress-dots">
+      <span class="dot active" data-step="1"></span>
+      <span class="dot" data-step="2"></span>
+      <span class="dot" data-step="3"></span>
+      <span class="dot" data-step="4"></span>
+      <span class="dot" data-step="5"></span>
+      <span class="dot" data-step="6"></span>
+    </div>
+  </div>
+
+  <!-- Step 1: Welcome -->
+  <div class="step" id="step-1">
+    <div class="step-content step-welcome">
+      <div class="welcome-logo">वाणी</div>
+      <h1 class="welcome-title">Vaani</h1>
+      <p class="welcome-tagline">Voice to polished text, right at your cursor</p>
+      <p class="welcome-description">
+        Speak naturally. Vaani transcribes, enhances, and pastes
+        polished text wherever your cursor is.
+      </p>
+      <button class="btn-primary btn-get-started" id="btn-get-started">Get Started</button>
+    </div>
+  </div>
+
+  <!-- Step 2: API Keys -->
+  <div class="step" id="step-2" style="display:none;">
+    <div class="step-content">
+      <h2 class="step-title">Connect Your APIs</h2>
+      <p class="step-subtitle">Vaani uses OpenAI for transcription and Anthropic for text enhancement.</p>
+
+      <div class="api-key-group">
+        <div class="api-key-header">
+          <label for="openai-key">OpenAI API Key</label>
+          <span class="status-dot" id="openai-status" title="Not configured"></span>
+        </div>
+        <div class="input-with-toggle">
+          <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off" spellcheck="false">
+          <button class="toggle-visibility" data-target="openai-key" title="Show/Hide">
+            <span class="eye-icon">&#x1F441;</span>
+          </button>
+        </div>
+        <div class="api-key-help">
+          <span>Used for speech-to-text</span>
+          <a href="#" class="get-key-link" data-provider="openai">Get API Key</a>
+        </div>
+        <div class="inline-error" id="openai-error"></div>
+      </div>
+
+      <div class="api-key-group">
+        <div class="api-key-header">
+          <label for="anthropic-key">Anthropic API Key</label>
+          <span class="status-dot" id="anthropic-status" title="Not configured"></span>
+        </div>
+        <div class="input-with-toggle">
+          <input type="password" id="anthropic-key" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+          <button class="toggle-visibility" data-target="anthropic-key" title="Show/Hide">
+            <span class="eye-icon">&#x1F441;</span>
+          </button>
+        </div>
+        <div class="api-key-help">
+          <span>Used for text enhancement</span>
+          <a href="#" class="get-key-link" data-provider="anthropic">Get API Key</a>
+        </div>
+        <div class="inline-error" id="anthropic-error"></div>
+      </div>
+
+      <p class="step-note">You can add these later in Settings.</p>
+    </div>
+  </div>
+
+  <!-- Step 3: Microphone -->
+  <div class="step" id="step-3" style="display:none;">
+    <div class="step-content">
+      <h2 class="step-title">Test Your Microphone</h2>
+      <p class="step-subtitle">Make sure Vaani can hear you clearly.</p>
+
+      <div class="mic-setup">
+        <label for="mic-select">Select Microphone</label>
+        <select id="mic-select">
+          <option value="">Loading microphones...</option>
+        </select>
+      </div>
+
+      <div class="level-meter">
+        <div class="level-bar">
+          <div class="level-bar-fill" id="level-bar-fill"></div>
+        </div>
+        <span class="level-label" id="level-label">Ready to test</span>
+      </div>
+
+      <div class="mic-actions">
+        <button class="btn-secondary" id="btn-mic-test">Test Microphone</button>
+        <button class="btn-secondary" id="btn-mic-stop" style="display:none;">Stop</button>
+        <button class="btn-primary" id="btn-sounds-good" style="display:none;">Sounds Good!</button>
+      </div>
+
+      <div class="inline-error" id="mic-error"></div>
+    </div>
+  </div>
+
+  <!-- Step 4: Hotkey -->
+  <div class="step" id="step-4" style="display:none;">
+    <div class="step-content">
+      <h2 class="step-title">Set Your Hotkey</h2>
+      <p class="step-subtitle">Press and hold this key to start recording. Release to stop.</p>
+
+      <div class="hotkey-display">
+        <div class="hotkey-badge" id="hotkey-badge">...</div>
+      </div>
+
+      <div class="hotkey-capture" id="hotkey-capture-msg" style="display:none;">
+        <p class="capture-prompt">Press your desired key...</p>
+      </div>
+
+      <button class="btn-secondary" id="btn-change-hotkey">Change Hotkey</button>
+
+      <div class="inline-error" id="hotkey-error"></div>
+    </div>
+  </div>
+
+  <!-- Step 5: Permissions -->
+  <div class="step" id="step-5" style="display:none;">
+    <div class="step-content">
+      <h2 class="step-title">Grant Permissions</h2>
+      <p class="step-subtitle">Vaani needs microphone access to hear you and accessibility access to type text.</p>
+
+      <div class="permission-cards">
+        <div class="permission-card">
+          <div class="permission-info">
+            <span class="status-dot" id="mic-perm-status" title="Not granted"></span>
+            <span class="permission-label">Microphone</span>
+          </div>
+          <button class="btn-small" id="btn-grant-mic">Grant</button>
+        </div>
+
+        <div class="permission-card">
+          <div class="permission-info">
+            <span class="status-dot" id="acc-perm-status" title="Not granted"></span>
+            <span class="permission-label">Accessibility</span>
+          </div>
+          <button class="btn-small" id="btn-grant-acc">Grant</button>
+        </div>
+      </div>
+
+      <button class="btn-link" id="btn-refresh-perms">Refresh Status</button>
+
+      <div class="inline-error" id="perm-error"></div>
+    </div>
+  </div>
+
+  <!-- Step 6: Done -->
+  <div class="step" id="step-6" style="display:none;">
+    <div class="step-content step-done">
+      <div class="checkmark">
+        <div class="checkmark-circle">
+          <div class="checkmark-stem"></div>
+          <div class="checkmark-kick"></div>
+        </div>
+      </div>
+      <h2 class="step-title">You're All Set!</h2>
+      <p class="step-subtitle">
+        Vaani is running in your menu bar. Press
+        <span class="hotkey-inline" id="done-hotkey">...</span>
+        to start recording.
+      </p>
+      <button class="btn-primary" id="btn-launch">Launch Vaani</button>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="onboarding-nav">
+    <button class="btn-nav" id="btn-back" style="display:none;">Back</button>
+    <div class="nav-spacer"></div>
+    <button class="btn-nav btn-nav-skip" id="btn-skip" style="display:none;">Skip</button>
+    <button class="btn-nav btn-nav-next" id="btn-next" style="display:none;">Next</button>
+  </div>
+
+  <script type="module" src="js/onboarding.js"></script>
+</body>
+</html>

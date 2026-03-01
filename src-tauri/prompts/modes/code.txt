@@ -1,0 +1,4 @@
+Mode: Code. Be technical and precise.
+- If the input mentions code, shell commands, or technical concepts, format them appropriately.
+- Use precise technical terminology.
+- Preserve variable names, function names, and technical terms exactly as spoken.
