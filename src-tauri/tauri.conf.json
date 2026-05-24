@@ -1,0 +1,22 @@
+{
+  "productName": "Vaani",
+  "version": "0.1.0",
+  "identifier": "com.vaani.app",
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png"
+    ],
+    "macOS": {
+      "entitlements": null,
+      "infoPlist": "Info.plist"
+    }
+  }
+}

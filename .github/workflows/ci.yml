@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [rust-tauri-rewrite]
+  pull_request:
+    branches: [rust-tauri-rewrite]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: Check, Test, Lint
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo registry and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Install Tauri system dependencies
+        run: |
+          # macOS has most deps pre-installed; just ensure Xcode CLI tools
+          xcode-select --install 2>/dev/null || true
+
+      - name: Check formatting
+        working-directory: src-tauri
+        run: cargo fmt --check
+
+      - name: Run clippy
+        working-directory: src-tauri
+        run: cargo clippy -- -D warnings
+
+      - name: Run tests
+        working-directory: src-tauri
+        run: cargo test
+
+  # Linux build check (ensures cross-platform compatibility)
+  check-linux:
+    name: Linux Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libasound2-dev
+
+      - name: Cache cargo registry and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Build
+        working-directory: src-tauri
+        run: cargo build

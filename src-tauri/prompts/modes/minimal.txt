@@ -1,0 +1,4 @@
+Mode: Minimal. Make the least changes possible.
+- Only fix grammar errors and remove filler words.
+- Keep the original wording, sentence structure, and vocabulary as much as possible.
+- Do not rephrase or restructure unless absolutely necessary for correctness.

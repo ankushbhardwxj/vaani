@@ -1,17 +1,5 @@
-# API keys — NEVER commit
-api_keys.yaml
-
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-.venv/
-venv/
-
-# Build artifacts
-build/
-dist/
-
+# Rust / Tauri
+src-tauri/target/
 
 # macOS
 .DS_Store
@@ -19,8 +7,6 @@ dist/
 # Vaani local data
 *.db
 *.log
-nohup.out
 
-# Build output archives
-dist.zip
-
+# Per-machine Claude Code config
+.claude/
