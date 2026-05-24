@@ -169,7 +169,7 @@ impl HistoryStore {
             .conn
             .prepare(
                 "SELECT id, timestamp, original_text, enhanced_text, mode, duration_secs
-                 FROM history ORDER BY timestamp DESC LIMIT ?1",
+                 FROM history ORDER BY id DESC LIMIT ?1",
             )
             .map_err(|e| VaaniError::Storage(format!("query prepare failed: {e}")))?;
 

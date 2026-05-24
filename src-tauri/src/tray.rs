@@ -11,17 +11,14 @@ use crate::state::AppState;
 
 /// Identifiers for tray menu items.
 const MENU_TOGGLE: &str = "toggle_recording";
-const MENU_PREFERENCES: &str = "preferences";
 const MENU_QUIT: &str = "quit";
 
 /// Sets up the system tray icon and menu.
 pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let toggle = MenuItem::with_id(app, MENU_TOGGLE, "Start Recording", true, None::<&str>)?;
-    let preferences =
-        MenuItem::with_id(app, MENU_PREFERENCES, "Preferences...", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, MENU_QUIT, "Quit Vaani", true, None::<&str>)?;
 
-    let menu = Menu::with_items(app, &[&toggle, &preferences, &quit])?;
+    let menu = Menu::with_items(app, &[&toggle, &quit])?;
 
     TrayIconBuilder::new()
         .icon(
@@ -30,6 +27,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                 .unwrap_or_else(|| tauri::image::Image::new(&[], 0, 0)),
         )
         .menu(&menu)
+        .title("Vaani")
         .tooltip("Vaani — Voice to Text")
         .on_menu_event(move |app, event| {
             let id = event.id().as_ref();
@@ -39,12 +37,6 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                     // Emit event to app for handling in app.rs
                     if let Err(e) = app.emit("tray-toggle-recording", ()) {
                         tracing::error!("Failed to emit toggle event: {e}");
-                    }
-                }
-                x if x == MENU_PREFERENCES => {
-                    tracing::info!("Tray: preferences clicked");
-                    if let Err(e) = app.emit("tray-open-preferences", ()) {
-                        tracing::error!("Failed to emit preferences event: {e}");
                     }
                 }
                 x if x == MENU_QUIT => {

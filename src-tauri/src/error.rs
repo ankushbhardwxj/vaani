@@ -24,9 +24,6 @@ pub enum VaaniError {
     #[error("Storage error: {0}")]
     Storage(String),
 
-    #[error("Keychain error: {0}")]
-    Keychain(String),
-
     #[error("File error: {0}")]
     Io(#[from] std::io::Error),
 
@@ -36,7 +33,7 @@ pub enum VaaniError {
     #[error("Cannot {action} while {state}")]
     InvalidTransition { action: String, state: String },
 
-    #[error("API key not configured for {0}. Please add it in Settings.")]
+    #[error("API key not configured for {0}. Please add it to ~/.vaani/config.yaml.")]
     MissingApiKey(String),
 
     #[error("Recording contains no speech. Try speaking louder or closer to the microphone.")]
@@ -68,7 +65,7 @@ mod tests {
         let err = VaaniError::MissingApiKey("OpenAI".to_string());
         let msg = err.to_string();
         assert!(msg.contains("OpenAI"));
-        assert!(msg.contains("Settings"));
+        assert!(msg.contains("config.yaml"));
     }
 
     #[test]

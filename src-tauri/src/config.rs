@@ -57,10 +57,6 @@ fn default_launch_at_login() -> bool {
     false
 }
 
-fn default_onboarding_completed() -> bool {
-    false
-}
-
 // ── VaaniConfig ────────────────────────────────────────────────────────────
 
 /// Application configuration persisted as YAML at `~/.vaani/config.yaml`.
@@ -99,8 +95,11 @@ pub struct VaaniConfig {
     #[serde(default = "default_launch_at_login")]
     pub launch_at_login: bool,
 
-    #[serde(default = "default_onboarding_completed")]
-    pub onboarding_completed: bool,
+    #[serde(default)]
+    pub openai_api_key: Option<String>,
+
+    #[serde(default)]
+    pub anthropic_api_key: Option<String>,
 }
 
 impl Default for VaaniConfig {
@@ -117,7 +116,8 @@ impl Default for VaaniConfig {
             sounds_enabled: default_sounds_enabled(),
             paste_restore_delay_ms: default_paste_restore_delay_ms(),
             launch_at_login: default_launch_at_login(),
-            onboarding_completed: default_onboarding_completed(),
+            openai_api_key: None,
+            anthropic_api_key: None,
         }
     }
 }
@@ -288,7 +288,8 @@ mod tests {
         assert!(cfg.sounds_enabled);
         assert_eq!(cfg.paste_restore_delay_ms, 100);
         assert!(!cfg.launch_at_login);
-        assert!(!cfg.onboarding_completed);
+        assert_eq!(cfg.openai_api_key, None);
+        assert_eq!(cfg.anthropic_api_key, None);
     }
 
     // 2. YAML round-trip: serialize then deserialize matches
@@ -306,7 +307,8 @@ mod tests {
             sounds_enabled: false,
             paste_restore_delay_ms: 200,
             launch_at_login: true,
-            onboarding_completed: true,
+            openai_api_key: Some("sk-test".to_string()),
+            anthropic_api_key: Some("sk-ant-test".to_string()),
         };
 
         let restored = round_trip(&original);
@@ -328,7 +330,8 @@ mod tests {
         assert!(cfg.sounds_enabled);
         assert_eq!(cfg.paste_restore_delay_ms, 100);
         assert!(!cfg.launch_at_login);
-        assert!(!cfg.onboarding_completed);
+        assert_eq!(cfg.openai_api_key, None);
+        assert_eq!(cfg.anthropic_api_key, None);
     }
 
     // 4. Completely invalid YAML returns defaults (doesn't panic)

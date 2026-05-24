@@ -3,17 +3,18 @@
 //! Coordinates the full flow: record → process → transcribe → paste.
 //! This module ties together audio capture, transcription, and output.
 
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::audio::capture::AudioBuffer;
-use crate::audio::processing::{encode_wav, normalize_gain};
+use crate::audio::processing::{encode_wav, normalize_gain, resample};
 use crate::config::VaaniConfig;
 use crate::enhance::enhance_streaming;
 use crate::error::VaaniError;
-use crate::keychain::create_secret_storage;
 use crate::output::paste::{paste_text, type_text};
 use crate::prompts::build_system_prompt;
+use crate::sounds::{play_sound_if_enabled, SoundEffect};
 use crate::state::StateMachine;
 use crate::transcribe::transcribe;
 
@@ -27,6 +28,15 @@ pub struct VaaniApp {
     pub config: Arc<Mutex<VaaniConfig>>,
     pub audio_buffer: AudioBuffer,
     pub http_client: reqwest::Client,
+    /// Signal to stop the recording thread.
+    pub stop_recording: Arc<AtomicBool>,
+    /// Signal to stop mic test thread.
+    pub mic_test_active: Arc<AtomicBool>,
+    /// Shared buffer for mic test level monitoring.
+    pub mic_test_buffer: AudioBuffer,
+    /// Actual sample rate used by the device during capture.
+    /// May differ from config.sample_rate if the device doesn't support it.
+    pub capture_sample_rate: Arc<AtomicU32>,
 }
 
 impl VaaniApp {
@@ -44,6 +54,10 @@ impl VaaniApp {
             config: Arc::new(Mutex::new(config)),
             audio_buffer: AudioBuffer::new(),
             http_client,
+            stop_recording: Arc::new(AtomicBool::new(false)),
+            mic_test_active: Arc::new(AtomicBool::new(false)),
+            mic_test_buffer: AudioBuffer::new(),
+            capture_sample_rate: Arc::new(AtomicU32::new(16_000)),
         }
     }
 
@@ -84,21 +98,35 @@ impl VaaniApp {
             return Err(VaaniError::NoSpeechDetected);
         }
 
+        // Resample if the device captured at a different rate than the target
+        let capture_rate = self.capture_sample_rate.load(Ordering::SeqCst);
+        let target_rate = config.sample_rate;
+        let samples = if capture_rate != target_rate {
+            tracing::info!(
+                capture_rate,
+                target_rate,
+                "Resampling audio from device rate to target rate"
+            );
+            resample(&samples, capture_rate, target_rate)
+        } else {
+            samples
+        };
+
         tracing::info!(
             sample_count = samples.len(),
             "Processing audio ({:.1}s)",
-            samples.len() as f32 / config.sample_rate as f32
+            samples.len() as f32 / target_rate as f32
         );
 
         // Normalize audio gain
         let normalized = normalize_gain(&samples, -20.0);
 
-        // Encode to WAV
-        let wav_bytes = encode_wav(&normalized, config.sample_rate)?;
+        // Encode to WAV at the target rate (16kHz for Whisper)
+        let wav_bytes = encode_wav(&normalized, target_rate)?;
 
         // Transcribe via Whisper API
         let api_key = resolve_api_key(
-            "openai_api_key",
+            config.openai_api_key.as_deref(),
             &["VAANI_OPENAI_API_KEY", "OPENAI_API_KEY"],
         )
         .ok_or_else(|| VaaniError::MissingApiKey("OpenAI".to_string()))?;
@@ -123,7 +151,7 @@ impl VaaniApp {
         config: &VaaniConfig,
     ) -> Result<String, VaaniError> {
         let anthropic_key = resolve_api_key(
-            "anthropic_api_key",
+            config.anthropic_api_key.as_deref(),
             &["VAANI_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"],
         );
 
@@ -161,6 +189,183 @@ impl VaaniApp {
         }
     }
 
+    /// Toggle recording: if idle, start recording; if recording, stop and process.
+    pub fn toggle_recording(self: &Arc<Self>) {
+        let current = self.current_state();
+        match current {
+            crate::state::AppState::Idle => {
+                if let Err(e) = self.begin_recording() {
+                    tracing::error!("Failed to start recording: {e}");
+                }
+            }
+            crate::state::AppState::Recording => {
+                self.end_recording();
+            }
+            crate::state::AppState::Processing => {
+                tracing::info!("Already processing, ignoring toggle");
+            }
+        }
+    }
+
+    /// Start recording audio on a dedicated thread.
+    ///
+    /// Uses a channel to wait for the recording thread to confirm that the
+    /// audio stream started successfully. If the thread fails, the state
+    /// machine is rolled back to Idle.
+    fn begin_recording(self: &Arc<Self>) -> Result<(), VaaniError> {
+        // Transition state
+        self.state
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .start_recording()?;
+
+        let config = self
+            .config
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone();
+
+        // Play start sound
+        let _ = play_sound_if_enabled(SoundEffect::RecordStart, config.sounds_enabled);
+
+        // Clear stop signal
+        self.stop_recording.store(false, Ordering::SeqCst);
+
+        // Clone what we need for the recording thread
+        let buffer = self.audio_buffer.clone();
+        let stop_signal = Arc::clone(&self.stop_recording);
+        let sample_rate = config.sample_rate;
+        let device_index = config.microphone_device;
+        let capture_rate_ref = Arc::clone(&self.capture_sample_rate);
+
+        // Channel to receive recorder start result from the thread
+        let (tx, rx) = std::sync::mpsc::channel();
+
+        std::thread::Builder::new()
+            .name("vaani-recorder".into())
+            .spawn(move || {
+                use crate::audio::capture::AudioRecorder;
+
+                let mut recorder =
+                    match AudioRecorder::with_buffer(buffer, device_index, sample_rate) {
+                        Ok(r) => r,
+                        Err(e) => {
+                            let _ = tx.send(Err(e));
+                            return;
+                        }
+                    };
+
+                if let Err(e) = recorder.start(device_index) {
+                    let _ = tx.send(Err(e));
+                    return;
+                }
+
+                // Store the actual device sample rate so process_audio can resample
+                capture_rate_ref.store(recorder.actual_sample_rate(), Ordering::SeqCst);
+
+                // Signal success to the calling thread
+                let _ = tx.send(Ok(()));
+
+                tracing::info!("Recording thread started");
+
+                // Wait for stop signal, checking every 50ms
+                while !stop_signal.load(Ordering::SeqCst) {
+                    std::thread::sleep(Duration::from_millis(50));
+                }
+
+                // Stop recording — samples are already in the shared buffer
+                recorder.stop();
+                tracing::info!("Recording thread stopped");
+            })
+            .map_err(|e| {
+                // Roll back state if we can't even spawn the thread
+                let _ = self
+                    .state
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .cancel_recording();
+                VaaniError::Audio(format!("Failed to spawn recording thread: {e}"))
+            })?;
+
+        // Wait for the thread to confirm recording started (with timeout)
+        match rx.recv_timeout(Duration::from_secs(5)) {
+            Ok(Ok(())) => {
+                tracing::info!("Recording started");
+                Ok(())
+            }
+            Ok(Err(e)) => {
+                // Recording failed — roll back to idle
+                let _ = self
+                    .state
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .cancel_recording();
+                Err(e)
+            }
+            Err(_) => {
+                let _ = self
+                    .state
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .cancel_recording();
+                Err(VaaniError::Audio(
+                    "Recording thread did not respond in time".to_string(),
+                ))
+            }
+        }
+    }
+
+    /// Stop recording and kick off async processing.
+    fn end_recording(self: &Arc<Self>) {
+        let config = self
+            .config
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone();
+
+        // Play stop sound
+        let _ = play_sound_if_enabled(SoundEffect::RecordStop, config.sounds_enabled);
+
+        // Signal the recording thread to stop
+        self.stop_recording.store(true, Ordering::SeqCst);
+
+        // Give the recording thread a moment to stop and flush samples
+        std::thread::sleep(Duration::from_millis(100));
+
+        // Transition to processing
+        if let Err(e) = self
+            .state
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .stop_recording()
+        {
+            tracing::error!("Failed to transition to processing: {e}");
+            return;
+        }
+
+        // Spawn async processing
+        let app = Arc::clone(self);
+        tauri::async_runtime::spawn(async move {
+            match app.process_and_paste().await {
+                Ok(text) => {
+                    tracing::info!(len = text.len(), "Pipeline complete");
+                }
+                Err(e) => {
+                    tracing::error!("Pipeline error: {e}");
+                    // Make sure we get back to idle
+                    if let Err(e2) = app
+                        .state
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .finish_processing()
+                    {
+                        tracing::error!("Failed to recover to idle: {e2}");
+                    }
+                }
+            }
+        });
+    }
+
     /// Returns the current app state.
     pub fn current_state(&self) -> crate::state::AppState {
         self.state
@@ -175,19 +380,16 @@ impl VaaniApp {
     }
 }
 
-/// Look up an API key: keychain first, then environment variables.
+/// Look up an API key: config value first, then environment variables.
 ///
 /// Returns `None` if the key is not found in any source.
-fn resolve_api_key(keychain_key: &str, env_vars: &[&str]) -> Option<String> {
-    // 1. Try keychain
-    let storage = create_secret_storage();
-    if let Ok(Some(key)) = storage.get(keychain_key) {
+fn resolve_api_key(cfg_value: Option<&str>, env_vars: &[&str]) -> Option<String> {
+    if let Some(key) = cfg_value {
         if !key.is_empty() {
-            return Some(key);
+            return Some(key.to_string());
         }
     }
 
-    // 2. Fall back to environment variables
     for var in env_vars {
         if let Ok(key) = std::env::var(var) {
             if !key.is_empty() {

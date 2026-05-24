@@ -100,7 +100,12 @@ impl AudioBuffer {
 pub struct AudioRecorder {
     stream: Option<Stream>,
     buffer: AudioBuffer,
-    sample_rate: u32,
+    /// Target sample rate requested by the caller (e.g. 16kHz for Whisper).
+    target_sample_rate: u32,
+    /// Actual sample rate of the device stream. Set after `start()`.
+    actual_sample_rate: u32,
+    /// Number of channels the device stream is using. Set after `start()`.
+    actual_channels: u16,
 }
 
 impl AudioRecorder {
@@ -112,30 +117,104 @@ impl AudioRecorder {
         Ok(Self {
             stream: None,
             buffer: AudioBuffer::new(),
-            sample_rate,
+            target_sample_rate: sample_rate,
+            actual_sample_rate: sample_rate,
+            actual_channels: 1,
+        })
+    }
+
+    /// Creates a new recorder that writes samples into the provided shared buffer.
+    ///
+    /// This allows the caller (e.g., `VaaniApp`) to own the buffer and read
+    /// samples from it after recording stops.
+    pub fn with_buffer(
+        buffer: AudioBuffer,
+        device_index: Option<u32>,
+        sample_rate: u32,
+    ) -> Result<Self, VaaniError> {
+        let _device = get_device(device_index)?; // Validate device exists
+        Ok(Self {
+            stream: None,
+            buffer,
+            target_sample_rate: sample_rate,
+            actual_sample_rate: sample_rate,
+            actual_channels: 1,
         })
     }
 
     /// Starts recording. Audio samples accumulate in the internal buffer.
+    ///
+    /// Tries the target sample rate first. If the device doesn't support it,
+    /// falls back to the device's default config and records at the native rate.
+    /// Callers should use `actual_sample_rate()` to get the real capture rate
+    /// and resample if needed before sending to Whisper.
     pub fn start(&mut self, device_index: Option<u32>) -> Result<(), VaaniError> {
         let device = get_device(device_index)?;
 
-        let config = StreamConfig {
+        // Try the requested config first (mono, target sample rate)
+        let requested = StreamConfig {
             channels: 1,
-            sample_rate: SampleRate(self.sample_rate),
+            sample_rate: SampleRate(self.target_sample_rate),
             buffer_size: cpal::BufferSize::Default,
         };
 
+        let (stream_config, channels) = match device.build_input_stream(
+            &requested,
+            |_: &[f32], _: &cpal::InputCallbackInfo| {},
+            |_| {},
+            None,
+        ) {
+            Ok(_test_stream) => {
+                // Requested config works — drop the test stream and use it
+                drop(_test_stream);
+                (requested, 1u16)
+            }
+            Err(_) => {
+                // Fall back to device's default config
+                let default_config = device.default_input_config().map_err(|e| {
+                    VaaniError::Audio(format!("Failed to get default input config: {e}"))
+                })?;
+
+                tracing::info!(
+                    device_rate = default_config.sample_rate().0,
+                    device_channels = default_config.channels(),
+                    target_rate = self.target_sample_rate,
+                    "Device doesn't support requested config, using device defaults"
+                );
+
+                let ch = default_config.channels();
+                let config = StreamConfig {
+                    channels: ch,
+                    sample_rate: default_config.sample_rate(),
+                    buffer_size: cpal::BufferSize::Default,
+                };
+                (config, ch)
+            }
+        };
+
+        self.actual_sample_rate = stream_config.sample_rate.0;
+        self.actual_channels = channels;
+
         let buffer = self.buffer.clone();
+        let num_channels = channels;
         let err_fn = |err: cpal::StreamError| {
             tracing::error!("Audio stream error: {err}");
         };
 
         let stream = device
             .build_input_stream(
-                &config,
+                &stream_config,
                 move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                    buffer.push_samples(data);
+                    if num_channels == 1 {
+                        buffer.push_samples(data);
+                    } else {
+                        // Downmix to mono by averaging channels
+                        let mono: Vec<f32> = data
+                            .chunks(num_channels as usize)
+                            .map(|frame| frame.iter().sum::<f32>() / num_channels as f32)
+                            .collect();
+                        buffer.push_samples(&mono);
+                    }
                 },
                 err_fn,
                 None,
@@ -146,7 +225,12 @@ impl AudioRecorder {
             .play()
             .map_err(|e| VaaniError::Audio(format!("Failed to start audio stream: {e}")))?;
 
-        tracing::info!(sample_rate = self.sample_rate, "Recording started");
+        tracing::info!(
+            target_rate = self.target_sample_rate,
+            actual_rate = self.actual_sample_rate,
+            channels = self.actual_channels,
+            "Recording started"
+        );
         self.stream = Some(stream);
         Ok(())
     }
@@ -170,9 +254,17 @@ impl AudioRecorder {
         self.stream.is_some()
     }
 
-    /// Returns the configured sample rate.
-    pub fn sample_rate(&self) -> u32 {
-        self.sample_rate
+    /// Returns the actual sample rate the device is recording at.
+    ///
+    /// This may differ from the requested rate if the device doesn't support it.
+    /// Before `start()` is called, returns the target rate.
+    pub fn actual_sample_rate(&self) -> u32 {
+        self.actual_sample_rate
+    }
+
+    /// Returns the target sample rate originally requested.
+    pub fn target_sample_rate(&self) -> u32 {
+        self.target_sample_rate
     }
 }
 

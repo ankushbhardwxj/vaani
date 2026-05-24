@@ -67,6 +67,51 @@ pub fn normalize_gain(samples: &[f32], target_db: f32) -> Vec<f32> {
         .collect()
 }
 
+// ── Resampling ──────────────────────────────────────────────────────────────
+
+/// Resample mono audio from one sample rate to another using linear interpolation.
+///
+/// Returns the original samples unchanged if the rates match.
+/// Suitable for voice audio going to speech-to-text APIs.
+pub fn resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
+    if from_rate == to_rate || samples.is_empty() {
+        return samples.to_vec();
+    }
+
+    let ratio = from_rate as f64 / to_rate as f64;
+    let output_len = (samples.len() as f64 / ratio).ceil() as usize;
+    let mut output = Vec::with_capacity(output_len);
+
+    for i in 0..output_len {
+        let src_pos = i as f64 * ratio;
+        let src_idx = src_pos as usize;
+        let frac = src_pos - src_idx as f64;
+
+        let sample = if src_idx + 1 < samples.len() {
+            // Linear interpolation between adjacent samples
+            let a = samples[src_idx] as f64;
+            let b = samples[src_idx + 1] as f64;
+            (a + frac * (b - a)) as f32
+        } else if src_idx < samples.len() {
+            samples[src_idx]
+        } else {
+            0.0
+        };
+
+        output.push(sample);
+    }
+
+    debug!(
+        from_rate,
+        to_rate,
+        input_len = samples.len(),
+        output_len = output.len(),
+        "Resampled audio"
+    );
+
+    output
+}
+
 // ── WAV encoding ────────────────────────────────────────────────────────────
 
 /// Encode float-32 audio samples to an in-memory WAV file (PCM 16-bit, mono).

@@ -5,12 +5,10 @@
 
 pub mod app;
 pub mod audio;
-pub mod commands;
 pub mod config;
 pub mod enhance;
 pub mod error;
 pub mod hotkey;
-pub mod keychain;
 pub mod output;
 pub mod prompts;
 pub mod sounds;
@@ -23,7 +21,7 @@ pub mod updater;
 use app::VaaniApp;
 use config::load_config;
 use std::sync::Arc;
-use tauri::Manager;
+use tauri::{Listener, Manager, RunEvent};
 
 /// Tauri entry point — called from main.rs.
 ///
@@ -46,33 +44,45 @@ pub fn run() {
     let vaani = Arc::new(VaaniApp::new(config));
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
         .manage(vaani)
-        .invoke_handler(tauri::generate_handler![
-            commands::get_config,
-            commands::save_config_cmd,
-            commands::get_api_keys_status,
-            commands::set_api_key,
-            commands::list_microphones,
-            commands::start_mic_test,
-            commands::get_mic_level,
-            commands::stop_mic_test,
-            commands::get_hotkey,
-            commands::set_hotkey,
-            commands::check_permissions,
-            commands::request_accessibility,
-            commands::open_accessibility_settings,
-            commands::complete_onboarding,
-            commands::get_version,
-            commands::open_log_file,
-            commands::open_config_dir,
-            commands::close_window,
-        ])
         .setup(|app| {
             // Set up system tray
             tray::setup_tray(app.handle())?;
 
-            // Background update check (non-blocking)
+            // ── Wire up tray toggle recording event ────────────────────────
+            let vaani_for_tray = app.state::<Arc<VaaniApp>>().inner().clone();
+            app.listen("tray-toggle-recording", move |_event| {
+                tracing::info!("Toggle recording event received");
+                vaani_for_tray.toggle_recording();
+            });
+
+            // ── Start global hotkey listener ───────────────────────────────
+            let vaani_for_hotkey = app.state::<Arc<VaaniApp>>().inner().clone();
+            let hotkey_str = vaani_for_hotkey
+                .config
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .hotkey
+                .clone();
+
+            match hotkey::start_listener(&hotkey_str, move |event| match event {
+                hotkey::HotkeyEvent::Pressed => {
+                    tracing::info!("Hotkey pressed — starting recording");
+                    vaani_for_hotkey.toggle_recording();
+                }
+                hotkey::HotkeyEvent::Released => {
+                    let current = vaani_for_hotkey.current_state();
+                    if current == state::AppState::Recording {
+                        tracing::info!("Hotkey released — stopping recording");
+                        vaani_for_hotkey.toggle_recording();
+                    }
+                }
+            }) {
+                Ok(()) => tracing::info!(hotkey = %hotkey_str, "Global hotkey listener started"),
+                Err(e) => tracing::error!("Failed to start hotkey listener: {e}"),
+            }
+
+            // ── Background update check (non-blocking) ────────────────────
             let vaani_ref = app.state::<Arc<VaaniApp>>().inner().clone();
             tauri::async_runtime::spawn(async move {
                 match updater::check_for_update(&vaani_ref.http_client).await {
@@ -90,6 +100,12 @@ pub fn run() {
             tracing::info!("Vaani ready");
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("Failed to run Vaani");
+        .build(tauri::generate_context!())
+        .expect("Failed to build Vaani")
+        .run(|_app, event| {
+            // Keep the app running when all windows are closed (tray-only app).
+            if let RunEvent::ExitRequested { api, .. } = event {
+                api.prevent_exit();
+            }
+        });
 }

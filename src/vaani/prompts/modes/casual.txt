@@ -1,3 +1,0 @@
-<mode name="casual">
-Rewrite the transcription in a friendly, conversational tone — like texting a friend. Keep it natural and approachable. Contractions are fine. Light casual expressions ("you know", "like", "basically") can be preserved when they contribute to the natural tone.
-</mode>
