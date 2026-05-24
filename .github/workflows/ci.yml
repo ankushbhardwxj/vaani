@@ -28,8 +28,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
       - name: Install Tauri system dependencies
@@ -38,15 +38,12 @@ jobs:
           xcode-select --install 2>/dev/null || true
 
       - name: Check formatting
-        working-directory: src-tauri
         run: cargo fmt --check
 
       - name: Run clippy
-        working-directory: src-tauri
         run: cargo clippy -- -D warnings
 
       - name: Run tests
-        working-directory: src-tauri
         run: cargo test
 
   # Linux build check (ensures cross-platform compatibility)
@@ -76,10 +73,9 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
       - name: Build
-        working-directory: src-tauri
         run: cargo build

@@ -55,64 +55,63 @@ A Tauri v2 desktop app. Rust backend, fresh frontend built natively for Tauri. D
 vaani/                            # rust-tauri-rewrite branch
 ├── CLAUDE.md
 ├── PLAN.md
-├── src-tauri/
-│   ├── Cargo.toml
-│   ├── build.rs
-│   ├── tauri.conf.json
-│   ├── src/
-│   │   ├── main.rs               # Entry point
-│   │   ├── lib.rs                # Module tree + Tauri command registration
-│   │   ├── app.rs                # Pipeline orchestrator
-│   │   ├── state.rs              # IDLE/RECORDING/PROCESSING state machine
-│   │   ├── config.rs             # VaaniConfig, YAML, MODES constant
-│   │   ├── error.rs              # VaaniError (thiserror)
-│   │   ├── commands.rs           # #[tauri::command] functions (JS bridge)
-│   │   ├── tray.rs               # System tray setup + state-driven updates
-│   │   ├── prompts.rs            # Prompt loading (bundled + ~/.vaani/prompts/)
-│   │   ├── transcribe.rs         # OpenAI Whisper API
-│   │   ├── enhance.rs            # Claude streaming + SSE parsing
-│   │   ├── sounds.rs             # Sound playback (rodio)
-│   │   ├── audio/
-│   │   │   ├── mod.rs
-│   │   │   ├── capture.rs        # cpal AudioRecorder
-│   │   │   ├── vad.rs            # Silero VAD via ONNX Runtime
-│   │   │   ├── processing.rs     # Gain normalization, WAV encoding, VAD trim
-│   │   │   └── ring_buffer.rs    # Lock-free ring buffer
-│   │   ├── output/
-│   │   │   ├── mod.rs
-│   │   │   ├── paste.rs          # Streaming paste + clipboard save/restore
-│   │   │   └── platform.rs       # Platform-specific Cmd+V / xdotool
-│   │   ├── hotkey/
-│   │   │   ├── mod.rs            # HotkeyListener trait
-│   │   │   ├── macos.rs          # CGEvent tap
-│   │   │   └── linux.rs          # evdev/rdev
-│   │   ├── keychain/
-│   │   │   ├── mod.rs            # SecretStorage trait
-│   │   │   ├── macos.rs          # security-framework
-│   │   │   └── linux.rs          # secret-service
-│   │   ├── storage.rs            # SQLite + AES-256-GCM history
-│   │   └── platform/
-│   │       ├── mod.rs            # Platform detection + abstraction
-│   │       ├── macos.rs          # Accessibility, permissions
-│   │       └── linux.rs          # Linux equivalents
-│   ├── prompts/                  # Bundled prompt files (written fresh)
-│   │   ├── system.txt
-│   │   ├── context.txt
-│   │   └── modes/
-│   │       ├── minimal.txt
-│   │       ├── professional.txt
-│   │       ├── casual.txt
-│   │       ├── code.txt
-│   │       └── funny.txt
-│   ├── sounds/
-│   │   ├── record_start.wav
-│   │   └── record_stop.wav
-│   ├── models/
-│   │   └── silero_vad.onnx       # ~1.8MB (replaces 2GB torch)
-│   └── icons/
-│       ├── icon.icns
-│       ├── icon.ico
-│       └── icon.png
+├── Cargo.toml
+├── build.rs
+├── tauri.conf.json
+├── src/
+│   ├── main.rs                   # Entry point
+│   ├── lib.rs                    # Module tree + Tauri command registration
+│   ├── app.rs                    # Pipeline orchestrator
+│   ├── state.rs                  # IDLE/RECORDING/PROCESSING state machine
+│   ├── config.rs                 # VaaniConfig, YAML, MODES constant
+│   ├── error.rs                  # VaaniError (thiserror)
+│   ├── commands.rs               # #[tauri::command] functions (JS bridge)
+│   ├── tray.rs                   # System tray setup + state-driven updates
+│   ├── prompts.rs                # Prompt loading (bundled + ~/.vaani/prompts/)
+│   ├── transcribe.rs             # OpenAI Whisper API
+│   ├── enhance.rs                # Claude streaming + SSE parsing
+│   ├── sounds.rs                 # Sound playback (rodio)
+│   ├── audio/
+│   │   ├── mod.rs
+│   │   ├── capture.rs            # cpal AudioRecorder
+│   │   ├── vad.rs                # Silero VAD via ONNX Runtime
+│   │   ├── processing.rs         # Gain normalization, WAV encoding, VAD trim
+│   │   └── ring_buffer.rs        # Lock-free ring buffer
+│   ├── output/
+│   │   ├── mod.rs
+│   │   ├── paste.rs              # Streaming paste + clipboard save/restore
+│   │   └── platform.rs           # Platform-specific Cmd+V / xdotool
+│   ├── hotkey/
+│   │   ├── mod.rs                # HotkeyListener trait
+│   │   ├── macos.rs              # CGEvent tap
+│   │   └── linux.rs              # evdev/rdev
+│   ├── keychain/
+│   │   ├── mod.rs                # SecretStorage trait
+│   │   ├── macos.rs              # security-framework
+│   │   └── linux.rs              # secret-service
+│   ├── storage.rs                # SQLite + AES-256-GCM history
+│   └── platform/
+│       ├── mod.rs                # Platform detection + abstraction
+│       ├── macos.rs              # Accessibility, permissions
+│       └── linux.rs              # Linux equivalents
+├── prompts/                      # Bundled prompt files (written fresh)
+│   ├── system.txt
+│   ├── context.txt
+│   └── modes/
+│       ├── minimal.txt
+│       ├── professional.txt
+│       ├── casual.txt
+│       ├── code.txt
+│       └── funny.txt
+├── sounds/
+│   ├── record_start.wav
+│   └── record_stop.wav
+├── models/
+│   └── silero_vad.onnx           # ~1.8MB (replaces 2GB torch)
+├── icons/
+│   ├── icon.icns
+│   ├── icon.ico
+│   └── icon.png
 ├── ui/                           # Frontend (fresh, built for Tauri)
 │   ├── index.html                # Router — shows onboarding or settings
 │   ├── onboarding.html           # First-run wizard
@@ -207,7 +206,7 @@ These 18 commands are the complete JS<->Rust contract:
 **Goal**: Working tray app. Hold hotkey -> record -> transcribe via Whisper -> paste raw text at cursor.
 
 **Deliver**:
-- `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `src-tauri/build.rs`
+- `Cargo.toml`, `tauri.conf.json`, `build.rs`
 - `main.rs`, `lib.rs`, `error.rs`, `state.rs`, `config.rs`
 - `audio/capture.rs`, `audio/processing.rs` (WAV encode + gain normalize)
 - `transcribe.rs` (Whisper API multipart upload)
@@ -274,7 +273,7 @@ rodio = "0.19"
 **Deliver**:
 - `enhance.rs` — Anthropic Messages API, SSE stream parsing, token batching
 - `prompts.rs` — load system.txt + context.txt + modes/{mode}.txt with user override
-- Write fresh prompt files in `src-tauri/prompts/`
+- Write fresh prompt files in `prompts/`
 - `output/platform.rs` — platform-specific key simulation
 - Wire enhancement into `app.rs` pipeline
 - Streaming paste: batch tokens every 50ms, type via enigo

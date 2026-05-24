@@ -1,5 +1,5 @@
 # Rust / Tauri
-src-tauri/target/
+target/
 
 # macOS
 .DS_Store

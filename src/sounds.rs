@@ -27,7 +27,7 @@ fn sound_filename(effect: SoundEffect) -> &'static str {
 /// Returns the expected file path for a sound effect.
 ///
 /// Looks in the `sounds/` directory relative to the executable,
-/// falling back to `src-tauri/sounds/` for development.
+/// falling back to `sounds/` at the repo root for development.
 pub fn sound_file_path(effect: SoundEffect) -> PathBuf {
     let filename = sound_filename(effect);
 
@@ -51,7 +51,7 @@ pub fn sound_file_path(effect: SoundEffect) -> PathBuf {
     }
 
     // Fallback: development path
-    PathBuf::from("src-tauri").join("sounds").join(filename)
+    PathBuf::from("sounds").join(filename)
 }
 
 /// Play a sound effect asynchronously (non-blocking).

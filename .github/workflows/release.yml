@@ -29,26 +29,24 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-release-${{ hashFiles('src-tauri/Cargo.lock') }}
+            target
+          key: ${{ runner.os }}-release-${{ hashFiles('Cargo.lock') }}
           restore-keys: ${{ runner.os }}-release-
 
       - name: Run tests
-        working-directory: src-tauri
         run: cargo test
 
       - name: Build Tauri app
-        working-directory: src-tauri
         run: cargo tauri build
 
       - name: Ad-hoc code sign
         run: |
-          APP_PATH=$(find src-tauri/target/release/bundle/macos -name "*.app" | head -1)
+          APP_PATH=$(find target/release/bundle/macos -name "*.app" | head -1)
           codesign --force --deep --sign - "$APP_PATH"
 
       - name: Package as DMG
         run: |
-          APP_PATH=$(find src-tauri/target/release/bundle/macos -name "*.app" | head -1)
+          APP_PATH=$(find target/release/bundle/macos -name "*.app" | head -1)
           hdiutil create \
             -volname "Vaani" \
             -srcfolder "$APP_PATH" \
@@ -91,19 +89,18 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-release-${{ hashFiles('src-tauri/Cargo.lock') }}
+            target
+          key: ${{ runner.os }}-release-${{ hashFiles('Cargo.lock') }}
           restore-keys: ${{ runner.os }}-release-
 
       - name: Build Tauri app
-        working-directory: src-tauri
         run: cargo tauri build
 
       - name: Collect Linux artifacts
         run: |
           mkdir -p linux-artifacts
-          cp src-tauri/target/release/bundle/deb/*.deb linux-artifacts/ 2>/dev/null || true
-          cp src-tauri/target/release/bundle/appimage/*.AppImage linux-artifacts/ 2>/dev/null || true
+          cp target/release/bundle/deb/*.deb linux-artifacts/ 2>/dev/null || true
+          cp target/release/bundle/appimage/*.AppImage linux-artifacts/ 2>/dev/null || true
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4

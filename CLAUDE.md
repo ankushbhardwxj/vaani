@@ -31,7 +31,7 @@ Read `PLAN.md` for full architecture, phases, and technical decisions.
 - Keep functions under 50 lines. Extract when logic gets complex.
 
 ### Architecture Discipline
-- Single crate in `src-tauri/`. Modules provide encapsulation.
+- Single crate at the repo root. Modules provide encapsulation.
 - Platform-specific code behind `#[cfg(target_os = "...")]`. Define traits in `mod.rs`, implement per-platform.
 - All external I/O (APIs, filesystem, keychain) goes through traits so tests can mock them.
 - State machine transitions are the single source of truth for app behavior. Never bypass `state.rs`.
@@ -47,7 +47,7 @@ Read `PLAN.md` for full architecture, phases, and technical decisions.
 ### Performance
 - Single `reqwest::Client` reused for all HTTP calls (connection pooling + HTTP/2).
 - Audio callback (cpal) must be lock-free. No allocations, no mutexes in the hot path.
-- VAD runs on ONNX Runtime, not torch. Model bundled at `src-tauri/models/silero_vad.onnx`.
+- VAD runs on ONNX Runtime, not torch. Model bundled at `models/silero_vad.onnx`.
 - Claude streaming tokens are flushed to cursor every 50ms via enigo typing. Don't wait for full response.
 
 ### Dependencies
@@ -58,16 +58,16 @@ Read `PLAN.md` for full architecture, phases, and technical decisions.
 ## Key Commands
 ```bash
 # Build
-cargo build --manifest-path src-tauri/Cargo.toml
+cargo build
 
 # Test (run after every change)
-cargo test --manifest-path src-tauri/Cargo.toml
+cargo test
 
 # Lint (run before completing any module)
-cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+cargo clippy -- -D warnings
 
 # Format
-cargo fmt --manifest-path src-tauri/Cargo.toml
+cargo fmt
 
 # Run the app (dev mode)
 cargo tauri dev
@@ -78,12 +78,11 @@ cargo tauri build
 
 ## File Reference
 - `PLAN.md` — Full architecture, phases, and technical decisions
-- `src-tauri/src/error.rs` — All error types
-- `src-tauri/src/state.rs` — State machine (IDLE/RECORDING/PROCESSING)
-- `src-tauri/src/config.rs` — VaaniConfig + MODES constant
-- `src-tauri/src/commands.rs` — Tauri IPC commands (JS<->Rust bridge)
-- `src-tauri/src/app.rs` — Pipeline orchestrator
-- `ui/js/api.js` — Frontend API layer (all Tauri invoke calls)
+- `src/error.rs` — All error types
+- `src/state.rs` — State machine (IDLE/RECORDING/PROCESSING)
+- `src/config.rs` — VaaniConfig + MODES constant
+- `src/commands.rs` — Tauri IPC commands (JS<->Rust bridge)
+- `src/app.rs` — Pipeline orchestrator
 
 ## What NOT To Do
 - Don't reference or copy any Python code from main branch

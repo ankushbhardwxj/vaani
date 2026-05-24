@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/src-tauri"
+cd "$(dirname "$0")"
 
 echo "==> Building Vaani.app (release)..."
 cargo tauri build
